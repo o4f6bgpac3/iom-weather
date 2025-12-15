@@ -1,0 +1,18 @@
+{
+  "name": "iom-weather-worker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "worker.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/o4f6bgpac3/iom-weather.git"
+  },
+  "private": true,
+  "dependencies": {
+    "fast-xml-parser": "^4.5.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "wrangler": "^4.54.0"
+  }
+}

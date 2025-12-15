@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Isle of Man Weather Forecast</title>
+    <!-- Font Awesome for icons -->
+    <link
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+            rel="stylesheet"
+    />
+    <!-- Primary stylesheet -->
+    <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="header-content">
+            <h1>Isle of Man Weather</h1>
+            <div class="date-filter">
+                <label for="forecast-date">Select Date:</label>
+                <input type="date" id="forecast-date"/>
+                <button id="reset-filter">Latest</button>
+            </div>
+        </div>
+        <div id="ask-container"></div>
+    </header>
+
+    <main>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading forecast data...</p>
+        </div>
+
+        <div id="forecast-container" class="forecast-container"></div>
+
+        <div id="error-message" class="error-message"></div>
+        <div id="no-data-message" class="no-data-message"></div>
+    </main>
+
+    <footer>
+        <p>
+            Data provided by the
+            <a href="https://www.gov.im/weather/5-day-forecast/" target="_blank"
+            >Isle of Man Meteorological Service</a
+            >.
+        </p>
+    </footer>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
