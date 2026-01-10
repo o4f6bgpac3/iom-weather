@@ -15,7 +15,7 @@
  */
 const LLM_DEFAULTS = {
     apiUrl: "https://api.venice.ai/api/v1/chat/completions",
-    model: "zai-org-glm-4.6",
+    model: "zai-org-glm-4.7",
     timeoutMs: 15000,
     maxRetries: 1,
     temperature: {

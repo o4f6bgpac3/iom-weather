@@ -172,7 +172,7 @@ Natural language weather queries.
 |----------|----------|-------------|
 | `LLM_API_KEY` | Yes | API key for LLM service |
 | `LLM_API_URL` | No | LLM API endpoint (default: Venice.ai) |
-| `LLM_MODEL` | No | LLM model identifier (default: zai-org-glm-4.6) |
+| `LLM_MODEL` | No | LLM model identifier (default: zai-org-glm-4.7) |
 | `LLM_TIMEOUT_MS` | No | Request timeout in ms (default: 15000) |
 | `LLM_MAX_RETRIES` | No | Retry attempts for server errors (default: 1) |
 | `SMTP2GO_API_KEY` | No | API key for email notifications |
