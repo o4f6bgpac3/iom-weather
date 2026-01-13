@@ -661,8 +661,8 @@ footer a:hover {
     color: var(--text-color);
 }
 .forecast-date span {
-    font-weight: 400;
-    color: var(--text-color-muted);
+    font-weight: 500;
+    color: var(--text-color-secondary);
     font-size: 1rem;
 }
 .published-date {
@@ -1312,6 +1312,22 @@ footer a:hover {
 .ask-answer {
     color: var(--text-color);
     line-height: 1.7;
+}
+
+.ask-answer.streaming::after {
+    content: "";
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: var(--primary-600);
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: cursor-blink 0.8s infinite;
+}
+
+@keyframes cursor-blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
 }
 
 .ask-citations {

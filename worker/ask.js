@@ -1,9 +1,101 @@
 import { checkRateLimit } from "./rateLimiter.js";
-import { queryLLM, generateResponse } from "./llm.js";
+import { queryLLM, generateResponse, generateResponseStreaming } from "./llm.js";
 import { QueryIntentSchema, QuestionInputSchema, UnanswerableSchema, RejectedSchema } from "./validation.js";
 import { buildQuery } from "./queryBuilder.js";
 import { SYSTEM_PROMPT, buildUserPrompt, injectDates, RESPONSE_SYSTEM_PROMPT, buildResponsePrompt } from "./prompts.js";
 import { formatRainfall, formatDateLong, formatDateShort, formatFieldName } from "./utils.js";
+
+// Cache TTL in seconds (1 hour)
+const CACHE_TTL = 3600;
+
+/**
+ * Get date context for cache key generation.
+ * Includes today and week start to handle relative date queries.
+ */
+function getDateContext() {
+    const today = new Date();
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay());
+
+    return {
+        today: today.toISOString().split("T")[0],
+        weekStart: weekStart.toISOString().split("T")[0],
+    };
+}
+
+/**
+ * Normalize a question for cache key generation.
+ * Ensures equivalent questions map to the same cache key.
+ */
+function normalizeQuestion(question) {
+    return question
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, " ")
+        .replace(/[?!.,]+$/g, "");
+}
+
+/**
+ * Generate a cache key for a question using SHA-256 hash.
+ * Key format: ask:v1:<32-char-hash>
+ */
+async function generateCacheKey(question, dateContext) {
+    const normalizedQuestion = normalizeQuestion(question);
+    const keyData = JSON.stringify({
+        q: normalizedQuestion,
+        today: dateContext.today,
+        weekStart: dateContext.weekStart,
+    });
+
+    const encoder = new TextEncoder();
+    const data = encoder.encode(keyData);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+
+    return `ask:v1:${hashHex.substring(0, 32)}`;
+}
+
+/**
+ * Try to get a cached response for a question.
+ * Returns null if cache miss or KV not available.
+ */
+async function getCachedResponse(question, dateContext, env) {
+    if (!env.ASK_CACHE_KV) {
+        return null;
+    }
+
+    try {
+        const cacheKey = await generateCacheKey(question, dateContext);
+        const cached = await env.ASK_CACHE_KV.get(cacheKey, { type: "json" });
+        if (cached) {
+            console.log("Cache hit for question:", question);
+            return cached;
+        }
+    } catch (error) {
+        console.error("Cache read error:", error);
+    }
+    return null;
+}
+
+/**
+ * Store a successful response in cache.
+ */
+async function cacheResponse(question, dateContext, responseData, env) {
+    if (!env.ASK_CACHE_KV) {
+        return;
+    }
+
+    try {
+        const cacheKey = await generateCacheKey(question, dateContext);
+        await env.ASK_CACHE_KV.put(cacheKey, JSON.stringify(responseData), {
+            expirationTtl: CACHE_TTL,
+        });
+        console.log("Cached response for question:", question);
+    } catch (error) {
+        console.error("Cache write error:", error);
+    }
+}
 
 /**
  * Handle the /ask endpoint for natural language weather questions.
@@ -55,7 +147,17 @@ export async function handleAskRequest(request, env) {
 
     const { question } = inputValidation.data;
 
-    // 3. Query LLM for structured intent
+    // 3. Check cache before making LLM calls
+    const dateContext = getDateContext();
+    const cached = await getCachedResponse(question, dateContext, env);
+    if (cached) {
+        return {
+            result: { ...cached, cached: true },
+            status: 200,
+        };
+    }
+
+    // 4. Query LLM for structured intent
     let llmResponse;
     try {
         const systemPrompt = injectDates(SYSTEM_PROMPT);
@@ -183,7 +285,7 @@ export async function handleAskRequest(request, env) {
         // Fall back to template-based response if LLM fails
         const fallback = generateFallbackAnswer(validatedIntent, results);
         return {
-            result: fallback,
+            result: { ...fallback, cached: false },
             status: 200,
         };
     }
@@ -191,15 +293,282 @@ export async function handleAskRequest(request, env) {
     // Build citations from results
     const citations = buildCitations(validatedIntent, results);
 
+    // Cache the successful response
+    const responseData = {
+        success: true,
+        answer,
+        citations,
+        query_type: validatedIntent.query_type,
+    };
+    await cacheResponse(question, dateContext, responseData, env);
+
     return {
-        result: {
-            success: true,
-            answer,
-            citations,
-            query_type: validatedIntent.query_type,
-        },
+        result: { ...responseData, cached: false },
         status: 200,
     };
+}
+
+/**
+ * Format an SSE event message.
+ */
+function formatSSE(event, data) {
+    return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+/**
+ * Get SSE response headers with CORS.
+ */
+function sseHeaders(origin) {
+    return {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        "Access-Control-Allow-Origin": origin || "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Accept",
+    };
+}
+
+/**
+ * Map error types to user-friendly error codes.
+ */
+function getErrorType(error) {
+    if (error.isTimeout) return "llm_timeout";
+    if (error.isRateLimit) return "service_busy";
+    if (error.isAuthError) return "llm_error";
+    if (error.isServerError) return "llm_error";
+    return "internal_error";
+}
+
+/**
+ * Map error types to user-friendly messages.
+ */
+function getErrorMessage(error) {
+    if (error.isTimeout) return "Request timed out. Please try again.";
+    if (error.isRateLimit) return "Service is temporarily busy. Please try again later.";
+    if (error.isAuthError) return "Service configuration error. Please try again later.";
+    return "Failed to process question. Please try again.";
+}
+
+/**
+ * Handle the /ask endpoint with Server-Sent Events for streaming responses.
+ * Returns SSE stream with status updates, text chunks, and final result.
+ *
+ * @param {Request} request - The incoming request
+ * @param {Object} env - Environment bindings
+ * @returns {Response} - SSE streaming response
+ */
+export async function handleAskStreamRequest(request, env) {
+    const origin = request.headers.get("Origin");
+
+    // 1. Check rate limit
+    const rateLimit = await checkRateLimit(request, env);
+    if (!rateLimit.allowed) {
+        return new Response(
+            formatSSE("error", {
+                error: "rate_limit_exceeded",
+                message: "You've reached your daily question limit. Please try again tomorrow.",
+            }),
+            { status: 429, headers: sseHeaders(origin) }
+        );
+    }
+
+    // 2. Parse and validate input
+    let body;
+    try {
+        body = await request.json();
+    } catch {
+        return new Response(
+            formatSSE("error", {
+                error: "invalid_request",
+                message: "Invalid JSON body",
+            }),
+            { status: 400, headers: sseHeaders(origin) }
+        );
+    }
+
+    const inputValidation = QuestionInputSchema.safeParse(body);
+    if (!inputValidation.success) {
+        return new Response(
+            formatSSE("error", {
+                error: "invalid_question",
+                message: inputValidation.error.errors[0].message,
+            }),
+            { status: 400, headers: sseHeaders(origin) }
+        );
+    }
+
+    const { question } = inputValidation.data;
+
+    // 3. Check cache - return instant response if cached
+    const dateContext = getDateContext();
+    const cached = await getCachedResponse(question, dateContext, env);
+    if (cached) {
+        return new Response(formatSSE("complete", { ...cached, cached: true }), {
+            status: 200,
+            headers: sseHeaders(origin),
+        });
+    }
+
+    // 4. Create streaming response
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const encoder = new TextEncoder();
+
+    // Start async processing
+    (async () => {
+        try {
+            // Phase 1: Intent parsing (not streamed)
+            await writer.write(encoder.encode(formatSSE("status", { phase: "parsing", message: "Understanding your question..." })));
+
+            let llmResponse;
+            try {
+                const systemPrompt = injectDates(SYSTEM_PROMPT);
+                const userPrompt = buildUserPrompt(question);
+                llmResponse = await queryLLM(systemPrompt, userPrompt, env);
+            } catch (error) {
+                await writer.write(
+                    encoder.encode(
+                        formatSSE("error", {
+                            error: getErrorType(error),
+                            message: getErrorMessage(error),
+                        })
+                    )
+                );
+                await writer.close();
+                return;
+            }
+
+            // Check for rejected response
+            const rejectedCheck = RejectedSchema.safeParse(llmResponse);
+            if (rejectedCheck.success) {
+                await writer.write(
+                    encoder.encode(
+                        formatSSE("error", {
+                            error: "rejected",
+                            message: "Sorry, I can't process that request.",
+                        })
+                    )
+                );
+                await writer.close();
+                return;
+            }
+
+            // Check for unanswerable response
+            const unanswerableCheck = UnanswerableSchema.safeParse(llmResponse);
+            if (unanswerableCheck.success) {
+                await writer.write(
+                    encoder.encode(
+                        formatSSE("error", {
+                            error: "unanswerable",
+                            message: `I can only answer questions about Isle of Man weather forecasts. ${unanswerableCheck.data.reason || ""}`.trim(),
+                        })
+                    )
+                );
+                await writer.close();
+                return;
+            }
+
+            // Validate intent
+            const intentValidation = QueryIntentSchema.safeParse(llmResponse);
+            if (!intentValidation.success) {
+                await writer.write(
+                    encoder.encode(
+                        formatSSE("error", {
+                            error: "llm_invalid_response",
+                            message: "I couldn't understand that question. Please try rephrasing it.",
+                        })
+                    )
+                );
+                await writer.close();
+                return;
+            }
+
+            const validatedIntent = intentValidation.data;
+
+            // Phase 2: Database query
+            await writer.write(encoder.encode(formatSSE("status", { phase: "querying", message: "Searching weather data..." })));
+
+            let results;
+            try {
+                const { sql, params } = buildQuery(validatedIntent);
+                const stmt = env.DB.prepare(sql);
+                const bound = params.length > 0 ? stmt.bind(...params) : stmt;
+                const response = await bound.all();
+                results = response.results || [];
+            } catch (dbError) {
+                console.error("Database error:", dbError);
+                await writer.write(
+                    encoder.encode(
+                        formatSSE("error", {
+                            error: "internal_error",
+                            message: "Database query failed. Please try again.",
+                        })
+                    )
+                );
+                await writer.close();
+                return;
+            }
+
+            // Phase 3: Response generation (STREAMED)
+            await writer.write(encoder.encode(formatSSE("status", { phase: "generating", message: "Composing answer..." })));
+
+            let answer = "";
+            try {
+                const responseSystemPrompt = injectDates(RESPONSE_SYSTEM_PROMPT);
+                const responseUserPrompt = buildResponsePrompt(question, validatedIntent.query_type, results);
+
+                answer = await generateResponseStreaming(responseSystemPrompt, responseUserPrompt, env, async (chunk) => {
+                    await writer.write(encoder.encode(formatSSE("chunk", { text: chunk })));
+                });
+            } catch (error) {
+                console.error("Response generation error:", error);
+                // Fall back to template-based response
+                const fallback = generateFallbackAnswer(validatedIntent, results);
+                answer = fallback.answer;
+                // Send fallback as single chunk
+                await writer.write(encoder.encode(formatSSE("chunk", { text: answer })));
+            }
+
+            // Build citations
+            const citations = buildCitations(validatedIntent, results);
+
+            // Cache the response
+            const responseData = {
+                success: true,
+                answer,
+                citations,
+                query_type: validatedIntent.query_type,
+            };
+            await cacheResponse(question, dateContext, responseData, env);
+
+            // Send complete event
+            await writer.write(
+                encoder.encode(
+                    formatSSE("complete", {
+                        success: true,
+                        citations,
+                        query_type: validatedIntent.query_type,
+                        cached: false,
+                    })
+                )
+            );
+        } catch (error) {
+            console.error("Streaming error:", error);
+            await writer.write(
+                encoder.encode(
+                    formatSSE("error", {
+                        error: "internal_error",
+                        message: "An unexpected error occurred. Please try again.",
+                    })
+                )
+            );
+        } finally {
+            await writer.close();
+        }
+    })();
+
+    return new Response(readable, { status: 200, headers: sseHeaders(origin) });
 }
 
 /**

@@ -194,6 +194,124 @@ export async function generateResponse(systemPrompt, userPrompt, env) {
 }
 
 /**
+ * Generate a streaming natural language response from the LLM.
+ * Calls onChunk callback for each text delta received.
+ *
+ * @param {string} systemPrompt - The system prompt with instructions
+ * @param {string} userPrompt - The user's question with data context
+ * @param {Object} env - Environment bindings including LLM_API_KEY
+ * @param {Function} onChunk - Callback for each text chunk: (text: string) => Promise<void>
+ * @returns {Promise<string>} - Full text response
+ * @throws {Error} - On timeout, API errors, or stream errors
+ */
+export async function generateResponseStreaming(systemPrompt, userPrompt, env, onChunk) {
+    const llmConfig = getLLMConfig(env);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), llmConfig.timeoutMs);
+
+    console.log("\n===== LLM STREAMING RESPONSE GEN =====");
+    console.log(`[System Prompt] (${systemPrompt.length} chars)`);
+    console.log(`[User Prompt]: ${userPrompt.substring(0, 200)}...`);
+
+    try {
+        const response = await fetch(llmConfig.apiUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${env.LLM_API_KEY}`,
+            },
+            body: JSON.stringify({
+                model: llmConfig.model,
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt },
+                ],
+                temperature: llmConfig.temperature.natural,
+                max_tokens: llmConfig.maxTokens.natural,
+                stream: true,
+            }),
+            signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        // Handle errors same as non-streaming
+        if (response.status === 429) {
+            const error = new Error("Venice API rate limit exceeded");
+            error.isRateLimit = true;
+            throw error;
+        }
+
+        if (response.status === 401 || response.status === 403) {
+            const error = new Error(`Venice API authentication failed: ${response.status}`);
+            error.isAuthError = true;
+            throw error;
+        }
+
+        if (response.status >= 500) {
+            const error = new Error(`Venice API server error: ${response.status}`);
+            error.isServerError = true;
+            throw error;
+        }
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Venice API error: ${response.status} - ${errorText}`);
+        }
+
+        // Process the SSE stream
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullContent = "";
+        let buffer = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop(); // Keep incomplete line in buffer
+
+            for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                    const data = line.slice(6).trim();
+                    if (data === "[DONE]") continue;
+
+                    try {
+                        const parsed = JSON.parse(data);
+                        const content = parsed.choices?.[0]?.delta?.content;
+                        if (content) {
+                            fullContent += content;
+                            await onChunk(content);
+                        }
+                    } catch {
+                        // Skip malformed chunks
+                    }
+                }
+            }
+        }
+
+        console.log(`[Streaming Response] (${fullContent.length} chars): ${fullContent.substring(0, 100)}...`);
+        console.log("===== END STREAMING RESPONSE GEN =====\n");
+
+        return fullContent;
+    } catch (error) {
+        clearTimeout(timeoutId);
+
+        if (error.name === "AbortError") {
+            const timeoutError = new Error("LLM streaming request timeout");
+            timeoutError.isTimeout = true;
+            throw timeoutError;
+        }
+
+        console.error("Streaming error:", error.message);
+        console.log("===== END STREAMING RESPONSE GEN (ERROR) =====\n");
+        throw error;
+    }
+}
+
+/**
  * Parse JSON from LLM response, handling markdown code blocks.
  * The LLM sometimes wraps JSON in ```json blocks or includes extra text.
  *

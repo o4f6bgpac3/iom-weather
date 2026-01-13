@@ -11,7 +11,7 @@
  */
 
 import {XMLParser} from "fast-xml-parser";
-import {handleAskRequest} from "./ask.js";
+import { handleAskRequest, handleAskStreamRequest } from "./ask.js";
 import {CONFIG} from "./config.js";
 import {parseRainfallRange, parseVisibilityCode} from "./utils.js";
 
@@ -435,7 +435,14 @@ export default {
         try {
             // Handle /ask endpoint for natural language questions
             if (url.pathname === "/ask" && request.method === "POST") {
-                const {result, status} = await handleAskRequest(request, env);
+                // Check if client wants streaming response
+                const acceptHeader = request.headers.get("Accept") || "";
+                if (acceptHeader.includes("text/event-stream")) {
+                    return handleAskStreamRequest(request, env);
+                }
+
+                // Non-streaming JSON response
+                const { result, status } = await handleAskRequest(request, env);
                 return Response.json(result, {
                     status,
                     headers: corsHeaders(origin),

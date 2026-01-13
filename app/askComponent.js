@@ -124,31 +124,190 @@ export class AskComponent {
         try {
             const response = await fetch(`${this.apiUrl}/ask`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "text/event-stream",
+                },
                 body: JSON.stringify({ question }),
             });
 
-            const data = await response.json();
-
-            if (data.success) {
-                this.showResult(data);
+            // Check if we got a streaming response
+            const contentType = response.headers.get("Content-Type") || "";
+            if (contentType.includes("text/event-stream")) {
+                await this.handleStreamingResponse(response);
             } else {
-                let errorMessage = data.message || "Something went wrong. Please try again.";
-
-                // Handle specific error types
-                if (data.error === "service_busy") {
-                    errorMessage = "The service is temporarily busy. Please try again later.";
-                } else if (data.error === "unanswerable") {
-                    errorMessage = data.message;
-                }
-
-                this.showError(errorMessage);
+                // Fallback to JSON response
+                const data = await response.json();
+                this.handleJsonResponse(data);
             }
         } catch (error) {
             console.error("Ask error:", error);
             this.showError("Failed to connect. Please check your connection and try again.");
-        } finally {
             this.hideLoading();
+        }
+    }
+
+    /**
+     * Handle a streaming SSE response.
+     */
+    async handleStreamingResponse(response) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let answerText = "";
+
+        // Show answer area for streaming
+        this.showStreamingResult();
+
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const parts = buffer.split("\n\n");
+                buffer = parts.pop(); // Keep incomplete part in buffer
+
+                for (const part of parts) {
+                    if (!part.trim()) continue;
+
+                    const eventMatch = part.match(/^event:\s*(\w+)/m);
+                    const dataMatch = part.match(/^data:\s*(.+)$/m);
+
+                    if (!eventMatch || !dataMatch) continue;
+
+                    const event = eventMatch[1];
+                    let data;
+                    try {
+                        data = JSON.parse(dataMatch[1]);
+                    } catch {
+                        continue;
+                    }
+
+                    switch (event) {
+                        case "status":
+                            this.updateLoadingMessage(data.message);
+                            break;
+                        case "chunk":
+                            answerText += data.text;
+                            this.updateStreamingAnswer(answerText);
+                            break;
+                        case "complete":
+                            this.showFinalResult(answerText, data);
+                            this.hideLoading();
+                            return;
+                        case "error":
+                            this.showError(data.message);
+                            this.hideLoading();
+                            this.hideResult();
+                            return;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Streaming error:", error);
+            // If we have partial answer, show it
+            if (answerText) {
+                this.showFinalResult(answerText, { citations: [] });
+            } else {
+                this.showError("Connection interrupted. Please try again.");
+                this.hideResult();
+            }
+            this.hideLoading();
+        }
+    }
+
+    /**
+     * Handle a JSON response (non-streaming fallback).
+     */
+    handleJsonResponse(data) {
+        this.hideLoading();
+
+        if (data.success) {
+            this.showResult(data);
+        } else {
+            let errorMessage = data.message || "Something went wrong. Please try again.";
+
+            // Handle specific error types
+            if (data.error === "service_busy") {
+                errorMessage = "The service is temporarily busy. Please try again later.";
+            } else if (data.error === "unanswerable") {
+                errorMessage = data.message;
+            }
+
+            this.showError(errorMessage);
+        }
+    }
+
+    /**
+     * Show the result area prepared for streaming text.
+     */
+    showStreamingResult() {
+        const resultDiv = this.container.querySelector(".ask-result");
+        const answerDiv = this.container.querySelector(".ask-answer");
+        const citationsDiv = this.container.querySelector(".ask-citations");
+
+        answerDiv.textContent = "";
+        answerDiv.classList.add("streaming");
+        citationsDiv.hidden = true;
+        resultDiv.hidden = false;
+    }
+
+    /**
+     * Update the answer text during streaming.
+     */
+    updateStreamingAnswer(text) {
+        const answerDiv = this.container.querySelector(".ask-answer");
+        answerDiv.textContent = text;
+    }
+
+    /**
+     * Show the final result with citations after streaming completes.
+     */
+    showFinalResult(answer, data) {
+        const answerDiv = this.container.querySelector(".ask-answer");
+        const citationsDiv = this.container.querySelector(".ask-citations");
+
+        answerDiv.classList.remove("streaming");
+        answerDiv.textContent = answer;
+
+        if (data.citations && data.citations.length > 0) {
+            citationsDiv.innerHTML = `
+                <div class="citations-label">Based on forecast data:</div>
+                ${data.citations
+                    .map(
+                        (c) => `
+                    <div class="citation">
+                        <a href="#" class="citation-date" data-date="${c.forecast_date}">${this.formatDate(c.forecast_date)}</a>
+                        ${c.description ? `<span class="citation-desc"> - ${c.description}</span>` : ""}
+                    </div>
+                `
+                    )
+                    .join("")}
+            `;
+
+            // Add click handlers to citation links
+            citationsDiv.querySelectorAll(".citation-date").forEach((link) => {
+                link.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const date = link.dataset.date;
+                    this.navigateToDate(date);
+                });
+            });
+
+            citationsDiv.hidden = false;
+        } else {
+            citationsDiv.hidden = true;
+        }
+    }
+
+    /**
+     * Update the loading message during streaming phases.
+     */
+    updateLoadingMessage(message) {
+        const loadingSpan = this.container.querySelector(".ask-loading span");
+        if (loadingSpan) {
+            loadingSpan.textContent = message;
         }
     }
 
