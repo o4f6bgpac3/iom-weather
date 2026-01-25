@@ -246,76 +246,94 @@ export function getForecastCardHTML(forecast, options = {}) {
     <div class="forecast-card glassy ${weatherClass}" ${forecastDateAttr}>
       <div class="card-bg-anim"></div>
       <div class="card-content">
-        <div class="card-header">
-          <h2 class="forecast-date">${dayName} <span>${dayMonth}</span></h2>
-          <div class="published-date">Updated: ${updateTime}</div>
+        <div class="card-header-compact">
+          <div class="header-main">
+            <h2 class="forecast-date-compact">${dayName}</h2>
+            <span class="forecast-date-sub">${dayMonth}</span>
+          </div>
+          <div class="header-meta">
+            <span class="updated-badge">${updateTime}</span>
+          </div>
         </div>
-        <div class="weather-info-row">
-          <div class="weather-icon-anim">
-            <span class="weather-icon-large">${icon}</span>
+
+        <div class="weather-hero">
+          <div class="hero-icon">
+            <span class="weather-icon-lg">${icon}</span>
           </div>
           ${hasTemps ? `
-          <div class="temperature-container">
-            <div class="temp-min">
-              <div class="temp-value">${forecast.min_temp}°</div>
-              <div class="temp-label">Min</div>
+          <div class="hero-temps">
+            <div class="temp-high">
+              <span class="temp-val">${forecast.max_temp}°</span>
+              <span class="temp-lbl">High</span>
             </div>
-            <div class="temp-max">
-              <div class="temp-value">${forecast.max_temp}°</div>
-              <div class="temp-label">Max</div>
+            <div class="temp-divider"></div>
+            <div class="temp-low">
+              <span class="temp-val">${forecast.min_temp}°</span>
+              <span class="temp-lbl">Low</span>
             </div>
           </div>
           ` : ''}
         </div>
-        ${windDisplay ? `
-        <div class="wind-info">
-          <div class="wind-primary">
-            <i class="fas fa-wind"></i>
-            ${windDisplay}
-          </div>
-          ${forecast.wind_details ? `<div class="wind-details">${forecast.wind_details}</div>` : ''}
-        </div>
-        ` : ''}
-        ${forecast.rainfall ? `
-        <div class="rainfall-info">
-          <div class="rainfall-value">
-            ${rainfallIcon}
-            <span>Rainfall: ${formatRainfall(forecast.rainfall)}</span>
-          </div>
-        </div>
-        ` : ''}
-        <div class="description">${forecast.description}</div>
-        ${forecast.sun || forecast.tides ? `
-        <div class="sun-tide-row">
-          ${forecast.sun ? `
-          <div class="sun-info">
-            <i class="fas fa-sun"></i>
-            <span>${forecast.sun.sunrise} - ${forecast.sun.sunset}</span>
+
+        <div class="weather-details">
+          ${windDisplay || forecast.rainfall ? `
+          <div class="details-row">
+            ${windDisplay ? `
+            <div class="detail-item">
+              <i class="fas fa-wind"></i>
+              <span>${windDisplay}</span>
+            </div>
+            ` : ''}
+            ${forecast.rainfall ? `
+            <div class="detail-item">
+              ${rainfallIcon}
+              <span>${formatRainfall(forecast.rainfall)}</span>
+            </div>
+            ` : ''}
           </div>
           ` : ''}
-          ${forecast.tides && forecast.tides.high.length > 0 ? `
-          <div class="tide-info">
-            <i class="fas fa-water"></i>
-            <span>${forecast.tides.high.map(t => t.time).join(' / ')}</span>
+
+          ${forecast.sun || forecast.tides ? `
+          <div class="details-row">
+            ${forecast.sun ? `
+            <div class="detail-item">
+              <i class="fas fa-sun"></i>
+              <span>${forecast.sun.sunrise} – ${forecast.sun.sunset}</span>
+            </div>
+            ` : ''}
+            ${forecast.tides && forecast.tides.high.length > 0 ? `
+            <div class="detail-item">
+              <i class="fas fa-water"></i>
+              <span>High ${forecast.tides.high.map(t => t.time).join(', ')}</span>
+            </div>
+            ` : ''}
           </div>
           ` : ''}
+
+          ${forecast.visibility ? `
+          <div class="details-row">
+            <div class="detail-item detail-full">
+              <i class="fas fa-eye"></i>
+              <span>${forecast.visibility}</span>
+            </div>
+          </div>
+          ` : ''}
+        </div>
+
+        <div class="forecast-description">
+          <p>${forecast.description}</p>
+        </div>
+
+        ${forecast.wind_details ? `
+        <div class="wind-extended">
+          <span>${forecast.wind_details}</span>
         </div>
         ` : ''}
       </div>
-      ${forecast.visibility || forecast.comments ? `
-      <div class="additional-info">
-        ${forecast.visibility ? `
-        <div class="visibility">
-          <i class="fas fa-eye"></i>
-          <span>${forecast.visibility}</span>
-        </div>
-        ` : ''}
-        ${forecast.comments ? `
-          <div class="comments">
-            <i class="fas fa-info-circle"></i>
-            <span>${forecast.comments}</span>
-          </div>
-        ` : ""}
+      ${forecast.comments ? `
+      <div class="card-footer">
+        <i class="fas fa-info-circle"></i>
+        <span>${forecast.comments}</span>
       </div>
       ` : ''}
     </div>
