@@ -8,15 +8,6 @@
 import { parseForecastDate, formatRainfall } from "./utils.js";
 
 /**
- * Format day length from minutes to human-readable string
- */
-function formatDayLength(minutes) {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${hours}h ${mins}m`;
-}
-
-/**
  * Weather icon selection configuration.
  * Maps weather categories to keywords found in forecast descriptions.
  */
@@ -131,18 +122,64 @@ export function getWeatherIcon(description) {
     return topScore > 0 ? SINGLE_ICONS[topCategory] : "⛅";
 }
 
+/**
+ * Determines weather condition class directly from description scoring.
+ * Does not rely on emoji comparison which can fail due to unicode differences.
+ */
 export function getWeatherConditionClass(description) {
-    const icon = getWeatherIcon(description);
-    const map = {
-        "☀️": "weather-sunny",
-        "☁️": "weather-cloudy",
-        "🌧️": "weather-rainy",
-        "❄️": "weather-snowy",
-        "🌦️": "weather-cloudy-rainy",
-        "🌤️": "weather-sunny-cloudy",
-        "🌨️": "weather-cloudy-snowy",
+    const counts = { sunny: 0, cloudy: 0, rainy: 0, snowy: 0 };
+    const descWords = description.toLowerCase().split(/\s|,/);
+    let someActive = false;
+
+    for (const word of descWords) {
+        if (word === "some") {
+            someActive = true;
+            continue;
+        }
+        for (const category of Object.keys(WEATHER_KEYWORDS)) {
+            if (WEATHER_KEYWORDS[category].some((keyword) => word.includes(keyword))) {
+                counts[category] += someActive ? PARTIAL_WEIGHT : 1;
+                someActive = false;
+            }
+        }
+    }
+
+    const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+    const topCategory = sorted[0];
+    const secondCategory = sorted[1];
+    const topScore = counts[topCategory];
+    const secondScore = counts[secondCategory];
+
+    // Use synergy class if two categories are close
+    const shouldUseSynergy =
+        topScore > 0 &&
+        secondScore > 0 &&
+        (secondScore >= 1 || topScore - secondScore <= PARTIAL_WEIGHT);
+
+    if (shouldUseSynergy) {
+        // Map category pairs to CSS classes
+        const pair = [topCategory, secondCategory].sort().join("-");
+        const synergyClasses = {
+            "cloudy-sunny": "weather-sunny-cloudy",
+            "cloudy-rainy": "weather-cloudy-rainy",
+            "cloudy-snowy": "weather-cloudy-snowy",
+            "rainy-sunny": "weather-cloudy-rainy",
+            "rainy-snowy": "weather-cloudy-snowy",
+            "snowy-sunny": "weather-cloudy-snowy",
+        };
+        if (synergyClasses[pair]) {
+            return synergyClasses[pair];
+        }
+    }
+
+    // Single category classes
+    const singleClasses = {
+        sunny: "weather-sunny",
+        cloudy: "weather-cloudy",
+        rainy: "weather-rainy",
+        snowy: "weather-snowy",
     };
-    return map[icon] || "weather-sunny";
+    return topScore > 0 ? singleClasses[topCategory] : "weather-cloudy";
 }
 
 export function getForecastCardHTML(forecast, options = {}) {
@@ -248,17 +285,20 @@ export function getForecastCardHTML(forecast, options = {}) {
         </div>
         ` : ''}
         <div class="description">${forecast.description}</div>
-        ${forecast.sun ? `
-        <div class="sun-info">
-          <i class="fas fa-sun"></i>
-          <span>${forecast.sun.sunrise} - ${forecast.sun.sunset}</span>
-          <span class="day-length">(${formatDayLength(forecast.sun.dayLengthMinutes)})</span>
-        </div>
-        ` : ''}
-        ${forecast.tides ? `
-        <div class="tide-info">
-          <i class="fas fa-water"></i>
-          <span>High: ${forecast.tides.high.map(t => `${t.time} (${t.height.toFixed(1)}m)`).join(' / ')}</span>
+        ${forecast.sun || forecast.tides ? `
+        <div class="sun-tide-row">
+          ${forecast.sun ? `
+          <div class="sun-info">
+            <i class="fas fa-sun"></i>
+            <span>${forecast.sun.sunrise} - ${forecast.sun.sunset}</span>
+          </div>
+          ` : ''}
+          ${forecast.tides && forecast.tides.high.length > 0 ? `
+          <div class="tide-info">
+            <i class="fas fa-water"></i>
+            <span>${forecast.tides.high.map(t => t.time).join(' / ')}</span>
+          </div>
+          ` : ''}
         </div>
         ` : ''}
       </div>

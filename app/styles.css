@@ -244,7 +244,7 @@ main {
 @media (min-width: 768px) {
     .forecast-container {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Responsive grid that adapts to available space */
-        grid-auto-rows: 650px; /* Maintain consistent height */
+        grid-auto-rows: auto; /* Allow cards to size naturally */
     }
 }
 
@@ -265,8 +265,8 @@ main {
     transition: transform var(--transition-speed) var(--transition-smooth),
                 box-shadow var(--transition-speed) var(--transition-smooth);
     overflow: hidden;
-    height: 650px;
-    max-height: 650px;
+    height: auto;
+    max-height: none;
     width: 100%; /* Ensure cards take full width of their grid cell */
     min-width: 0; /* Allow card to shrink below its content size */
 }
@@ -1652,26 +1652,44 @@ footer a:hover {
     }
 }
 
-/* Sun and Tide Info */
+/* Sun and Tide Info Row */
+.sun-tide-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.5rem 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-color-secondary);
+}
+
 .sun-info,
 .tide-info {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0;
+  gap: 0.4rem;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.9);
 }
 
 .sun-info i,
 .tide-info i {
-  width: 1.2rem;
+  width: 1rem;
   text-align: center;
+  color: var(--text-color-muted);
 }
 
-.day-length {
-  opacity: 0.7;
-  font-size: 0.85rem;
+/* Weather theme overrides for sun-tide-row */
+.weather-rainy .sun-tide-row,
+.weather-cloudy-rainy .sun-tide-row {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.weather-rainy .sun-info i,
+.weather-rainy .tide-info i,
+.weather-cloudy-rainy .sun-info i,
+.weather-cloudy-rainy .tide-info i {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .context-sun {
