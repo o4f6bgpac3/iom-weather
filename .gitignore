@@ -22,3 +22,6 @@ worker/.dev.vars
 Archive.zip
 dist
 *.log
+
+# Git worktrees
+.worktrees

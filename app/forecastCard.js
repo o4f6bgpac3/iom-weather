@@ -8,6 +8,15 @@
 import { parseForecastDate, formatRainfall } from "./utils.js";
 
 /**
+ * Format day length from minutes to human-readable string
+ */
+function formatDayLength(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours}h ${mins}m`;
+}
+
+/**
  * Weather icon selection configuration.
  * Maps weather categories to keywords found in forecast descriptions.
  */
@@ -180,6 +189,11 @@ export function getForecastCardHTML(forecast, options = {}) {
               ` : ''}
             </div>
             <div class="context-description">${forecast.description}</div>
+            ${forecast.sun ? `
+            <div class="context-sun">
+              <i class="fas fa-sun"></i> ${forecast.sun.sunrise} - ${forecast.sun.sunset}
+            </div>
+            ` : ''}
           </div>
         </div>
       `;
@@ -234,6 +248,19 @@ export function getForecastCardHTML(forecast, options = {}) {
         </div>
         ` : ''}
         <div class="description">${forecast.description}</div>
+        ${forecast.sun ? `
+        <div class="sun-info">
+          <i class="fas fa-sun"></i>
+          <span>${forecast.sun.sunrise} - ${forecast.sun.sunset}</span>
+          <span class="day-length">(${formatDayLength(forecast.sun.dayLengthMinutes)})</span>
+        </div>
+        ` : ''}
+        ${forecast.tides ? `
+        <div class="tide-info">
+          <i class="fas fa-water"></i>
+          <span>High: ${forecast.tides.high.map(t => `${t.time} (${t.height.toFixed(1)}m)`).join(' / ')}</span>
+        </div>
+        ` : ''}
       </div>
       ${forecast.visibility || forecast.comments ? `
       <div class="additional-info">

@@ -14,6 +14,8 @@ import {XMLParser} from "fast-xml-parser";
 import { handleAskRequest, handleAskStreamRequest } from "./ask.js";
 import {CONFIG} from "./config.js";
 import {parseRainfallRange, parseVisibilityCode} from "./utils.js";
+import { getSunData } from "./sun.js";
+import { getTidesForDate, refreshTideData } from "./tides.js";
 
 // CORS helper.
 function corsHeaders(origin) {
@@ -354,7 +356,7 @@ async function fetchAndStoreWeather(env) {
     }
 }
 
-// Retrieve future forecasts from the database.
+// Retrieve future forecasts from the database, enriched with sun/tide data.
 async function getFutureForecasts(env) {
     console.log("Getting future forecasts from database");
     const query = `
@@ -365,10 +367,20 @@ async function getFutureForecasts(env) {
     `;
     const {results} = await env.DB.prepare(query).all();
     console.log(`Retrieved ${results?.length || 0} future forecasts from database`);
-    return results || [];
+
+    if (!results || results.length === 0) {
+        return [];
+    }
+
+    // Enrich each forecast with sun and tide data
+    const enriched = await Promise.all(
+        results.map(forecast => enrichForecastWithSunAndTides(forecast, env))
+    );
+
+    return enriched;
 }
 
-// Retrieve forecasts for a specific date.
+// Retrieve forecasts for a specific date, enriched with sun/tide data.
 async function getDateForecasts(env, date) {
     console.log(`Getting forecasts for date: ${date}`);
     const query = `
@@ -379,7 +391,17 @@ async function getDateForecasts(env, date) {
     `;
     const {results} = await env.DB.prepare(query).bind(date).all();
     console.log(`Retrieved ${results?.length || 0} forecasts for ${date}`);
-    return results || [];
+
+    if (!results || results.length === 0) {
+        return [];
+    }
+
+    // Enrich each forecast with sun and tide data
+    const enriched = await Promise.all(
+        results.map(forecast => enrichForecastWithSunAndTides(forecast, env))
+    );
+
+    return enriched;
 }
 
 // Determine whether new data should be fetched.
@@ -416,6 +438,25 @@ async function shouldFetchNewData(env) {
 
     console.log("Database is up to date");
     return false;
+}
+
+/**
+ * Enrich forecast data with sun and tide information
+ */
+async function enrichForecastWithSunAndTides(forecast, env) {
+  const dateStr = forecast.forecast_date;
+
+  // Get sun data (calculated)
+  const sun = getSunData(dateStr);
+
+  // Get tide data (from database)
+  const tides = await getTidesForDate(env.DB, dateStr);
+
+  return {
+    ...forecast,
+    sun,
+    tides: tides.high.length > 0 || tides.low.length > 0 ? tides : null,
+  };
 }
 
 export default {
@@ -475,7 +516,12 @@ export default {
     async scheduled(event, env, ctx) {
         console.log("Starting scheduled task");
         try {
+            // Refresh weather data
             await fetchAndStoreWeather(env);
+
+            // Refresh tide data (weekly is enough, but running daily is fine)
+            await refreshTideData(env.DB);
+
             console.log("Scheduled task completed successfully");
         } catch (error) {
             console.error("Scheduled task failed:", error);
