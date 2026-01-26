@@ -694,8 +694,8 @@ footer a:hover {
 .stats-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
-    padding: 0.5rem 0;
+    gap: 0.5rem;
+    padding: 0.6rem 0;
     border-top: 1px solid rgba(255, 255, 255, 0.12);
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     margin-bottom: 0.5rem;
@@ -704,21 +704,30 @@ footer a:hover {
 .stat-item {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    font-size: 0.8rem;
-    color: var(--text-color-secondary);
-    background: rgba(255, 255, 255, 0.18);
-    padding: 0.3rem 0.5rem;
-    border-radius: 5px;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-color);
+    background: rgba(255, 255, 255, 0.25);
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    backdrop-filter: blur(4px);
 }
 
 .stat-item i {
-    font-size: 0.7rem;
-    opacity: 0.75;
-    width: 0.85rem;
+    font-size: 0.95rem;
+    width: 1.1rem;
     text-align: center;
     flex-shrink: 0;
 }
+
+/* Coloured stat icons */
+.stat-temp i { color: #e74c3c; }
+.stat-wind i { color: #3498db; }
+.stat-rain i { color: #2980b9; }
+.stat-sun i { color: #f39c12; }
+.stat-tide i { color: #1abc9c; }
+.stat-vis i { color: #9b59b6; }
 
 .stat-value {
     white-space: nowrap;
@@ -729,7 +738,7 @@ footer a:hover {
 }
 
 .stat-temp .stat-value strong {
-    color: var(--accent-color);
+    color: #e74c3c;
 }
 
 /* Card Text Section */
@@ -997,14 +1006,17 @@ footer a:hover {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 .weather-rainy .stat-item {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.22);
   color: rgba(255, 255, 255, 0.95);
 }
-.weather-rainy .stat-item i {
-  color: rgba(255, 255, 255, 0.8);
-}
+.weather-rainy .stat-temp i { color: #ff7b6b; }
+.weather-rainy .stat-wind i { color: #7ec8e8; }
+.weather-rainy .stat-rain i { color: #a8d8ff; }
+.weather-rainy .stat-sun i { color: #ffc857; }
+.weather-rainy .stat-tide i { color: #5dd9c0; }
+.weather-rainy .stat-vis i { color: #c9a0dc; }
 .weather-rainy .stat-temp .stat-value strong {
-  color: #fff;
+  color: #ff9f8f;
 }
 .weather-rainy .wind-text,
 .weather-rainy .comment-text {
@@ -1068,14 +1080,17 @@ footer a:hover {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 .weather-cloudy-rainy .stat-item {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.22);
   color: rgba(255, 255, 255, 0.95);
 }
-.weather-cloudy-rainy .stat-item i {
-  color: rgba(255, 255, 255, 0.8);
-}
+.weather-cloudy-rainy .stat-temp i { color: #ff7b6b; }
+.weather-cloudy-rainy .stat-wind i { color: #7ec8e8; }
+.weather-cloudy-rainy .stat-rain i { color: #a8d8ff; }
+.weather-cloudy-rainy .stat-sun i { color: #ffc857; }
+.weather-cloudy-rainy .stat-tide i { color: #5dd9c0; }
+.weather-cloudy-rainy .stat-vis i { color: #c9a0dc; }
 .weather-cloudy-rainy .stat-temp .stat-value strong {
-  color: #fff;
+  color: #ff9f8f;
 }
 .weather-cloudy-rainy .wind-text,
 .weather-cloudy-rainy .comment-text {
@@ -1159,17 +1174,17 @@ footer a:hover {
     }
 
     .stats-grid {
-        gap: 0.3rem;
-        padding: 0.4rem 0;
+        gap: 0.4rem;
+        padding: 0.5rem 0;
     }
 
     .stat-item {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.4rem;
+        font-size: 0.8rem;
+        padding: 0.35rem 0.5rem;
     }
 
     .stat-item i {
-        font-size: 0.65rem;
+        font-size: 0.85rem;
     }
 
     .description-text {
