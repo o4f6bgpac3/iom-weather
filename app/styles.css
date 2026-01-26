@@ -2474,3 +2474,493 @@ footer a:hover {
     position: relative;
     z-index: 2;
 }
+
+/* ==============================================
+   COMPACT EDITORIAL CARD LAYOUT
+   Horizontal-first design to fit fixed 520px height
+   ============================================== */
+
+/* Compact Header Row - Day, Temp, Icon on single row */
+.header-compact {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.header-left {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.day-name-compact {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-color);
+    margin: 0;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+.day-date-compact {
+    font-size: 0.8rem;
+    color: var(--text-color-secondary);
+    font-weight: 500;
+    margin-top: 0.1rem;
+}
+
+.header-temps {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.temp-max-compact {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 50%, #ff9f43 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.temp-sep-compact {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: var(--text-color-secondary);
+    opacity: 0.5;
+}
+
+.temp-min-compact {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #4dabf7;
+    opacity: 0.85;
+}
+
+.header-icon-compact {
+    flex-shrink: 0;
+}
+
+.weather-icon-compact {
+    font-size: 2.5rem;
+    filter: drop-shadow(0 2px 6px rgba(80, 120, 200, 0.2));
+    display: block;
+    animation: iconFloat 3s ease-in-out infinite alternate;
+}
+
+/* Inline Horizontal Stats Row */
+.stats-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.5rem 0;
+    margin-bottom: 0.4rem;
+}
+
+.stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-color);
+    background: rgba(255, 255, 255, 0.35);
+    padding: 0.35rem 0.6rem;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: transform 0.15s ease;
+}
+
+.stat-pill:hover {
+    transform: translateY(-1px);
+}
+
+/* Mini Compass for inline stats */
+.compass-mini {
+    width: 32px;
+    height: 32px;
+    border: 1.5px solid rgba(74, 158, 206, 0.4);
+    border-radius: 50%;
+    position: relative;
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.compass-mini::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    background: #4a9ece;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.compass-arrow-mini {
+    position: absolute;
+    top: 3px;
+    left: 50%;
+    width: 2px;
+    height: 12px;
+    background: linear-gradient(to bottom, #4a9ece, transparent);
+    transform-origin: bottom center;
+    margin-left: -1px;
+    border-radius: 1px 1px 0 0;
+}
+
+.compass-arrow-mini::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 6px solid #4a9ece;
+}
+
+/* Stat pill icons */
+.wind-pill .compass-mini { margin-right: 0.1rem; }
+.rain-pill .rain-droplets { margin-right: 0.1rem; }
+.vis-pill i {
+    color: #9c6aad;
+    font-size: 0.9rem;
+}
+
+/* Compact Card Text */
+.card-text-compact {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    overflow-y: auto;
+}
+
+.description-text-compact {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-color);
+    font-weight: 450;
+}
+
+.wind-inline {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-color-secondary);
+    line-height: 1.4;
+    padding: 0.4rem 0.6rem;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    border-left: 2px solid rgba(74, 158, 206, 0.4);
+}
+
+.wind-inline i {
+    color: #4a9ece;
+    margin-top: 0.1rem;
+    font-size: 0.75rem;
+}
+
+.alert-compact {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: #92400e;
+    line-height: 1.4;
+    padding: 0.4rem 0.6rem;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(245, 158, 11, 0.08) 100%);
+    border-radius: 6px;
+    border-left: 2px solid #f59e0b;
+    font-weight: 500;
+}
+
+.alert-compact i {
+    color: #f59e0b;
+    margin-top: 0.1rem;
+    font-size: 0.75rem;
+}
+
+/* Combined Footer: Sun + Tides */
+.card-footer-compact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.4rem 0.75rem;
+    margin-top: auto;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.sun-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--text-color-secondary);
+    font-weight: 500;
+}
+
+.sun-compact i {
+    color: #f59e0b;
+    font-size: 0.85rem;
+}
+
+.sun-divider {
+    color: rgba(245, 158, 11, 0.4);
+    margin: 0 0.15rem;
+}
+
+.tides-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.tide-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-color-secondary);
+}
+
+.tide-compact.high i { color: #2eb8a0; }
+.tide-compact.low i { color: #4a9ece; }
+
+/* Weather theme overrides for compact layout */
+.weather-rainy .header-compact,
+.weather-cloudy-rainy .header-compact {
+    color: #fff;
+}
+
+.weather-rainy .day-name-compact,
+.weather-cloudy-rainy .day-name-compact {
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.weather-rainy .day-date-compact,
+.weather-cloudy-rainy .day-date-compact {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.weather-rainy .temp-max-compact,
+.weather-cloudy-rainy .temp-max-compact {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 50%, #6c5ce7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.weather-rainy .temp-min-compact,
+.weather-cloudy-rainy .temp-min-compact {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.weather-rainy .temp-sep-compact,
+.weather-cloudy-rainy .temp-sep-compact {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.weather-rainy .stat-pill,
+.weather-cloudy-rainy .stat-pill {
+    background: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.weather-rainy .compass-mini,
+.weather-cloudy-rainy .compass-mini {
+    border-color: rgba(126, 200, 232, 0.4);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.weather-rainy .compass-mini::before,
+.weather-cloudy-rainy .compass-mini::before {
+    background: #7ec8e8;
+}
+
+.weather-rainy .compass-arrow-mini,
+.weather-cloudy-rainy .compass-arrow-mini {
+    background: linear-gradient(to bottom, #7ec8e8, transparent);
+}
+
+.weather-rainy .compass-arrow-mini::after,
+.weather-cloudy-rainy .compass-arrow-mini::after {
+    border-bottom-color: #7ec8e8;
+}
+
+.weather-rainy .vis-pill i,
+.weather-cloudy-rainy .vis-pill i {
+    color: #c9a0dc;
+}
+
+.weather-rainy .description-text-compact,
+.weather-cloudy-rainy .description-text-compact {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.weather-rainy .wind-inline,
+.weather-cloudy-rainy .wind-inline {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+    border-left-color: rgba(126, 200, 232, 0.5);
+}
+
+.weather-rainy .wind-inline i,
+.weather-cloudy-rainy .wind-inline i {
+    color: #7ec8e8;
+}
+
+.weather-rainy .alert-compact,
+.weather-cloudy-rainy .alert-compact {
+    background: linear-gradient(135deg, rgba(255, 210, 140, 0.15) 0%, rgba(255, 185, 100, 0.1) 100%);
+    color: rgba(255, 240, 200, 0.95);
+    border-left-color: rgba(255, 200, 130, 0.6);
+}
+
+.weather-rainy .alert-compact i,
+.weather-cloudy-rainy .alert-compact i {
+    color: rgba(255, 210, 150, 0.85);
+}
+
+.weather-rainy .card-footer-compact,
+.weather-cloudy-rainy .card-footer-compact {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.weather-rainy .sun-compact,
+.weather-cloudy-rainy .sun-compact {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.weather-rainy .tide-compact,
+.weather-cloudy-rainy .tide-compact {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.weather-rainy .droplet.empty,
+.weather-cloudy-rainy .droplet.empty {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Sunny theme compact adjustments */
+.weather-sunny .day-name-compact {
+    color: #222;
+}
+
+.weather-sunny .day-date-compact {
+    color: #555;
+}
+
+.weather-sunny .temp-max-compact {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ffcc00 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.weather-sunny .stat-pill {
+    background: rgba(255, 255, 255, 0.45);
+    color: #333;
+}
+
+.weather-sunny .description-text-compact {
+    color: #222;
+}
+
+.weather-sunny .wind-inline {
+    background: rgba(255, 255, 255, 0.35);
+    color: #444;
+}
+
+.weather-sunny .alert-compact {
+    background: linear-gradient(135deg, rgba(255, 210, 140, 0.4) 0%, rgba(255, 185, 100, 0.35) 100%);
+    color: #7a4a1a;
+}
+
+.weather-sunny .card-footer-compact {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Responsive adjustments for compact layout */
+@media (max-width: 600px) {
+    .header-compact {
+        gap: 0.4rem;
+    }
+
+    .day-name-compact {
+        font-size: 1.1rem;
+    }
+
+    .day-date-compact {
+        font-size: 0.75rem;
+    }
+
+    .temp-max-compact {
+        font-size: 2rem;
+    }
+
+    .temp-min-compact {
+        font-size: 1.25rem;
+    }
+
+    .temp-sep-compact {
+        font-size: 1.25rem;
+    }
+
+    .weather-icon-compact {
+        font-size: 2rem;
+    }
+
+    .stats-inline {
+        gap: 0.3rem;
+        padding: 0.4rem 0;
+    }
+
+    .stat-pill {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.5rem;
+    }
+
+    .compass-mini {
+        width: 26px;
+        height: 26px;
+    }
+
+    .compass-arrow-mini {
+        height: 10px;
+        top: 2px;
+    }
+
+    .description-text-compact {
+        font-size: 0.85rem;
+    }
+
+    .wind-inline,
+    .alert-compact {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.5rem;
+    }
+
+    .card-footer-compact {
+        font-size: 0.7rem;
+        padding: 0.35rem 0.6rem;
+        gap: 0.5rem;
+    }
+}

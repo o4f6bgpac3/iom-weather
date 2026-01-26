@@ -286,8 +286,6 @@ export function getForecastCardHTML(forecast, options = {}) {
     }
 
     const hasTemps = forecast.min_temp != null && forecast.max_temp != null;
-    const tempDiff = hasTemps ? Math.abs(forecast.max_temp - forecast.min_temp) : 0;
-    const tempRangeWidth = Math.min(Math.max(tempDiff * 8, 40), 100); // 40-100% width based on temp difference
 
     // Wind compass data
     const windRotation = getWindRotation(forecast.wind_direction);
@@ -297,55 +295,55 @@ export function getForecastCardHTML(forecast, options = {}) {
     const rainDroplets = getRainDropletsHTML(forecast.rainfall);
     const rainfallText = forecast.rainfall ? formatRainfall(forecast.rainfall) : null;
 
-    // Build visual stats row
+    // Build inline horizontal stats
     const visualStats = [];
 
     if (windSpeed) {
         visualStats.push(`
-            <div class="visual-stat wind-compass">
-                <div class="compass-ring">
-                    <div class="compass-arrow" style="transform: rotate(${windRotation}deg)"></div>
+            <div class="stat-pill wind-pill">
+                <div class="compass-mini">
+                    <div class="compass-arrow-mini" style="transform: rotate(${windRotation}deg)"></div>
                 </div>
-                <span class="visual-stat-label">${windSpeed}</span>
+                <span>${windSpeed}</span>
             </div>
         `);
     }
 
     if (forecast.rainfall !== undefined) {
         visualStats.push(`
-            <div class="visual-stat rain-indicator">
+            <div class="stat-pill rain-pill">
                 ${rainDroplets}
-                ${rainfallText ? `<span class="visual-stat-label">${rainfallText}</span>` : ''}
+                ${rainfallText ? `<span>${rainfallText}</span>` : ''}
             </div>
         `);
     }
 
     if (forecast.visibility) {
         visualStats.push(`
-            <div class="visual-stat visibility-stat">
+            <div class="stat-pill vis-pill">
                 <i class="fas fa-eye"></i>
-                <span class="visual-stat-label">${forecast.visibility}</span>
+                <span>${forecast.visibility}</span>
             </div>
         `);
     }
 
-    // Sun arc data
-    const sunArc = forecast.sun ? `
-        <div class="sun-arc">
-            <span class="sun-time sunrise"><i class="fas fa-sun"></i> ${forecast.sun.sunrise}</span>
-            <div class="arc-line"></div>
-            <span class="sun-time sunset">${forecast.sun.sunset} <i class="fas fa-sun"></i></span>
-        </div>
-    ` : '';
-
-    // Tides strip
-    const tidesStrip = forecast.tides && (forecast.tides.high?.length > 0 || forecast.tides.low?.length > 0) ? `
-        <div class="tides-strip">
-            ${forecast.tides.high?.length > 0 ? `
-                <span class="tide-info high"><i class="fas fa-arrow-up"></i> HIGH ${forecast.tides.high.map(t => t.time).join(', ')}</span>
+    // Build combined footer with sun and tides
+    const hasFooter = forecast.sun || (forecast.tides && (forecast.tides.high?.length > 0 || forecast.tides.low?.length > 0));
+    const cardFooter = hasFooter ? `
+        <div class="card-footer-compact">
+            ${forecast.sun ? `
+                <div class="sun-compact">
+                    <i class="fas fa-sun"></i>
+                    <span>${forecast.sun.sunrise}</span>
+                    <span class="sun-divider">━</span>
+                    <span>${forecast.sun.sunset}</span>
+                </div>
             ` : ''}
-            ${forecast.tides.low?.length > 0 ? `
-                <span class="tide-info low"><i class="fas fa-arrow-down"></i> LOW ${forecast.tides.low.map(t => t.time).join(', ')}</span>
+            ${forecast.tides && (forecast.tides.high?.length > 0 || forecast.tides.low?.length > 0) ? `
+                <div class="tides-compact">
+                    ${forecast.tides.high?.length > 0 ? `<span class="tide-compact high"><i class="fas fa-arrow-up"></i>${forecast.tides.high.map(t => t.time).join(', ')}</span>` : ''}
+                    ${forecast.tides.low?.length > 0 ? `<span class="tide-compact low"><i class="fas fa-arrow-down"></i>${forecast.tides.low.map(t => t.time).join(', ')}</span>` : ''}
+                </div>
             ` : ''}
         </div>
     ` : '';
@@ -355,51 +353,44 @@ export function getForecastCardHTML(forecast, options = {}) {
       <div class="card-bg-anim"></div>
       <div class="weather-effect"></div>
       <div class="card-content">
-        <div class="card-header-row">
-          <div class="header-date">
-            <h2 class="day-name">${dayName}</h2>
-            <span class="day-date">${dayMonth}</span>
+        <div class="header-compact">
+          <div class="header-left">
+            <h2 class="day-name-compact">${dayName}</h2>
+            <span class="day-date-compact">${dayMonth}</span>
           </div>
-          <div class="header-icon">
-            <span class="weather-icon-main">${icon}</span>
+          ${hasTemps ? `
+          <div class="header-temps">
+            <span class="temp-max-compact">${forecast.max_temp}°</span>
+            <span class="temp-sep-compact">/</span>
+            <span class="temp-min-compact">${forecast.min_temp}°</span>
+          </div>
+          ` : ''}
+          <div class="header-icon-compact">
+            <span class="weather-icon-compact">${icon}</span>
           </div>
         </div>
 
-        ${hasTemps ? `
-        <div class="hero-temp">
-          <div class="temp-display">
-            <span class="temp-max">${forecast.max_temp}°</span>
-            <span class="temp-separator">/</span>
-            <span class="temp-min">${forecast.min_temp}°</span>
-          </div>
-          <div class="temp-range-bar">
-            <div class="temp-range-fill" style="width: ${tempRangeWidth}%"></div>
-          </div>
-        </div>
-        ` : ''}
-
-        <div class="visual-stats-row">
+        <div class="stats-inline">
           ${visualStats.join('')}
         </div>
 
-        ${sunArc}
-        ${tidesStrip}
-
-        <div class="card-text">
-          <p class="description-text">${forecast.description}</p>
+        <div class="card-text-compact">
+          <p class="description-text-compact">${forecast.description}</p>
           ${forecast.wind_details ? `
-          <div class="wind-detail-box">
+          <div class="wind-inline">
             <i class="fas fa-wind"></i>
             <span>${forecast.wind_details}</span>
           </div>
           ` : ''}
           ${forecast.comments ? `
-          <div class="alert-box">
+          <div class="alert-compact">
             <i class="fas fa-exclamation-triangle"></i>
             <span>${forecast.comments}</span>
           </div>
           ` : ''}
         </div>
+
+        ${cardFooter}
       </div>
     </div>
   `;
