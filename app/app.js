@@ -142,8 +142,8 @@ class WeatherApp {
         this.forecastContainer.innerHTML = "";
         this.forecastContainer.classList.remove("single-day-view");
 
-        filteredForecasts.forEach((forecast) => {
-            const card = this.createForecastCard(forecast);
+        filteredForecasts.forEach((forecast, index) => {
+            const card = this.createForecastCard(forecast, { cardIndex: index });
             this.forecastContainer.appendChild(card);
         });
     }

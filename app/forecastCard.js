@@ -2,10 +2,67 @@
  * Forecast Card Module
  *
  * Generates HTML for weather forecast cards with dynamic icons and styling
- * based on weather conditions.
+ * based on weather conditions. Editorial "magazine cover" design approach.
  */
 
 import { parseForecastDate, formatRainfall } from "./utils.js";
+
+/**
+ * Wind direction to rotation degree mapping.
+ * Converts compass directions to CSS rotation angles.
+ */
+const WIND_DIRECTIONS = {
+    N: 0, NNE: 22.5, NE: 45, ENE: 67.5,
+    E: 90, ESE: 112.5, SE: 135, SSE: 157.5,
+    S: 180, SSW: 202.5, SW: 225, WSW: 247.5,
+    W: 270, WNW: 292.5, NW: 315, NNW: 337.5
+};
+
+/**
+ * Get rotation angle for wind direction arrow.
+ * @param {string} direction - Compass direction (e.g., "NE", "SSW")
+ * @returns {number} Rotation angle in degrees
+ */
+export function getWindRotation(direction) {
+    if (!direction) return 0;
+    const normalised = direction.toUpperCase().replace(/\s+/g, '');
+    return WIND_DIRECTIONS[normalised] ?? 0;
+}
+
+/**
+ * Calculate number of rain droplets to display based on rainfall amount.
+ * @param {string|number} rainfall - Rainfall in mm (can include "mm" suffix)
+ * @returns {number} Number of filled droplets (1-5)
+ */
+export function getRainDropletCount(rainfall) {
+    if (!rainfall) return 0;
+    const mm = parseFloat(String(rainfall).replace(/[^\d.]/g, ''));
+    if (isNaN(mm) || mm <= 0) return 0;
+    if (mm <= 1) return 1;
+    if (mm <= 3) return 2;
+    if (mm <= 7) return 3;
+    if (mm <= 15) return 4;
+    return 5;
+}
+
+/**
+ * Generate rain droplet HTML with filled/empty states.
+ * @param {string|number} rainfall - Rainfall amount
+ * @returns {string} HTML for droplet display
+ */
+function getRainDropletsHTML(rainfall) {
+    const count = getRainDropletCount(rainfall);
+    if (count === 0) {
+        return '<span class="droplets-none"><i class="fas fa-tint-slash"></i></span>';
+    }
+    let html = '<span class="rain-droplets">';
+    for (let i = 1; i <= 5; i++) {
+        const filled = i <= count ? 'filled' : 'empty';
+        html += `<span class="droplet ${filled}"></span>`;
+    }
+    html += '</span>';
+    return html;
+}
 
 /**
  * Weather icon selection configuration.
@@ -183,7 +240,7 @@ export function getWeatherConditionClass(description) {
 }
 
 export function getForecastCardHTML(forecast, options = {}) {
-    const { isContext = false, contextType = null } = options;
+    const { isContext = false, contextType = null, cardIndex = 0 } = options;
     const icon = getWeatherIcon(forecast.description);
     const weatherClass = getWeatherConditionClass(forecast.description);
 
@@ -191,20 +248,18 @@ export function getForecastCardHTML(forecast, options = {}) {
     const dayName = date.toLocaleDateString("en-GB", { weekday: "long" });
     const dayMonth = date.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
 
-    const rainfallIcon = forecast.rainfall && parseFloat(forecast.rainfall) > 0
-        ? '<i class="fas fa-tint"></i>'
-        : '<i class="fas fa-tint-slash"></i>';
-
     const contextClass = isContext ? 'context-card' : '';
     const contextTypeClass = contextType ? `context-${contextType}` : '';
     const forecastDateAttr = forecast.forecast_date ? `data-forecast-date="${forecast.forecast_date}"` : '';
+    const animationDelay = `style="--card-index: ${cardIndex}"`;
 
     // Simplified card for context (adjacent days)
     if (isContext) {
         const hasTemps = forecast.min_temp != null && forecast.max_temp != null;
         return `
-        <div class="forecast-card glassy ${weatherClass} ${contextClass} ${contextTypeClass}" ${forecastDateAttr}>
+        <div class="forecast-card glassy ${weatherClass} ${contextClass} ${contextTypeClass}" ${forecastDateAttr} ${animationDelay}>
           <div class="card-bg-anim"></div>
+          <div class="weather-effect"></div>
           <div class="card-content">
             <div class="card-header">
               <h2 class="forecast-date">${dayName} <span>${dayMonth}</span></h2>
@@ -213,9 +268,9 @@ export function getForecastCardHTML(forecast, options = {}) {
               <span class="weather-icon-context">${icon}</span>
               ${hasTemps ? `
               <div class="context-temps">
-                <span class="context-temp-min">${forecast.min_temp}°</span>
-                <span class="context-temp-sep">/</span>
                 <span class="context-temp-max">${forecast.max_temp}°</span>
+                <span class="context-temp-sep">/</span>
+                <span class="context-temp-min">${forecast.min_temp}°</span>
               </div>
               ` : ''}
             </div>
@@ -231,14 +286,74 @@ export function getForecastCardHTML(forecast, options = {}) {
     }
 
     const hasTemps = forecast.min_temp != null && forecast.max_temp != null;
-    const windDisplay = [
-        forecast.wind_speed != null ? `${forecast.wind_speed} mph` : null,
-        forecast.wind_direction
-    ].filter(Boolean).join(' ') || null;
+    const tempDiff = hasTemps ? Math.abs(forecast.max_temp - forecast.min_temp) : 0;
+    const tempRangeWidth = Math.min(Math.max(tempDiff * 8, 40), 100); // 40-100% width based on temp difference
+
+    // Wind compass data
+    const windRotation = getWindRotation(forecast.wind_direction);
+    const windSpeed = forecast.wind_speed != null ? `${forecast.wind_speed} mph` : null;
+
+    // Rain droplets
+    const rainDroplets = getRainDropletsHTML(forecast.rainfall);
+    const rainfallText = forecast.rainfall ? formatRainfall(forecast.rainfall) : null;
+
+    // Build visual stats row
+    const visualStats = [];
+
+    if (windSpeed) {
+        visualStats.push(`
+            <div class="visual-stat wind-compass">
+                <div class="compass-ring">
+                    <div class="compass-arrow" style="transform: rotate(${windRotation}deg)"></div>
+                </div>
+                <span class="visual-stat-label">${windSpeed}</span>
+            </div>
+        `);
+    }
+
+    if (forecast.rainfall !== undefined) {
+        visualStats.push(`
+            <div class="visual-stat rain-indicator">
+                ${rainDroplets}
+                ${rainfallText ? `<span class="visual-stat-label">${rainfallText}</span>` : ''}
+            </div>
+        `);
+    }
+
+    if (forecast.visibility) {
+        visualStats.push(`
+            <div class="visual-stat visibility-stat">
+                <i class="fas fa-eye"></i>
+                <span class="visual-stat-label">${forecast.visibility}</span>
+            </div>
+        `);
+    }
+
+    // Sun arc data
+    const sunArc = forecast.sun ? `
+        <div class="sun-arc">
+            <span class="sun-time sunrise"><i class="fas fa-sun"></i> ${forecast.sun.sunrise}</span>
+            <div class="arc-line"></div>
+            <span class="sun-time sunset">${forecast.sun.sunset} <i class="fas fa-sun"></i></span>
+        </div>
+    ` : '';
+
+    // Tides strip
+    const tidesStrip = forecast.tides && (forecast.tides.high?.length > 0 || forecast.tides.low?.length > 0) ? `
+        <div class="tides-strip">
+            ${forecast.tides.high?.length > 0 ? `
+                <span class="tide-info high"><i class="fas fa-arrow-up"></i> HIGH ${forecast.tides.high.map(t => t.time).join(', ')}</span>
+            ` : ''}
+            ${forecast.tides.low?.length > 0 ? `
+                <span class="tide-info low"><i class="fas fa-arrow-down"></i> LOW ${forecast.tides.low.map(t => t.time).join(', ')}</span>
+            ` : ''}
+        </div>
+    ` : '';
 
     return `
-    <div class="forecast-card glassy ${weatherClass}" ${forecastDateAttr}>
+    <div class="forecast-card glassy editorial ${weatherClass}" ${forecastDateAttr} ${animationDelay}>
       <div class="card-bg-anim"></div>
+      <div class="weather-effect"></div>
       <div class="card-content">
         <div class="card-header-row">
           <div class="header-date">
@@ -250,49 +365,40 @@ export function getForecastCardHTML(forecast, options = {}) {
           </div>
         </div>
 
-        <div class="stats-grid">
-          ${hasTemps ? `
-          <div class="stat-item stat-temp">
-            <i class="fas fa-temperature-high"></i>
-            <span class="stat-value"><strong>${forecast.max_temp}°</strong> / ${forecast.min_temp}°</span>
+        ${hasTemps ? `
+        <div class="hero-temp">
+          <div class="temp-display">
+            <span class="temp-max">${forecast.max_temp}°</span>
+            <span class="temp-separator">/</span>
+            <span class="temp-min">${forecast.min_temp}°</span>
           </div>
-          ` : ''}
-          ${windDisplay ? `
-          <div class="stat-item stat-wind">
-            <i class="fas fa-wind"></i>
-            <span class="stat-value">${windDisplay}</span>
+          <div class="temp-range-bar">
+            <div class="temp-range-fill" style="width: ${tempRangeWidth}%"></div>
           </div>
-          ` : ''}
-          ${forecast.rainfall ? `
-          <div class="stat-item stat-rain">
-            ${rainfallIcon}
-            <span class="stat-value">${formatRainfall(forecast.rainfall)}</span>
-          </div>
-          ` : ''}
-          ${forecast.sun ? `
-          <div class="stat-item stat-sun">
-            <i class="fas fa-sun"></i>
-            <span class="stat-value">${forecast.sun.sunrise} – ${forecast.sun.sunset}</span>
-          </div>
-          ` : ''}
-          ${forecast.tides && forecast.tides.high.length > 0 ? `
-          <div class="stat-item stat-tide">
-            <i class="fas fa-water"></i>
-            <span class="stat-value">${forecast.tides.high.map(t => t.time).join(', ')}</span>
-          </div>
-          ` : ''}
-          ${forecast.visibility ? `
-          <div class="stat-item stat-vis">
-            <i class="fas fa-eye"></i>
-            <span class="stat-value">${forecast.visibility}</span>
-          </div>
-          ` : ''}
         </div>
+        ` : ''}
+
+        <div class="visual-stats-row">
+          ${visualStats.join('')}
+        </div>
+
+        ${sunArc}
+        ${tidesStrip}
 
         <div class="card-text">
           <p class="description-text">${forecast.description}</p>
-          ${forecast.wind_details ? `<p class="wind-text">${forecast.wind_details}</p>` : ''}
-          ${forecast.comments ? `<p class="comment-text"><i class="fas fa-info-circle"></i> ${forecast.comments}</p>` : ''}
+          ${forecast.wind_details ? `
+          <div class="wind-detail-box">
+            <i class="fas fa-wind"></i>
+            <span>${forecast.wind_details}</span>
+          </div>
+          ` : ''}
+          ${forecast.comments ? `
+          <div class="alert-box">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>${forecast.comments}</span>
+          </div>
+          ` : ''}
         </div>
       </div>
     </div>
