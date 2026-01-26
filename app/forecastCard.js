@@ -191,12 +191,6 @@ export function getForecastCardHTML(forecast, options = {}) {
     const dayName = date.toLocaleDateString("en-GB", { weekday: "long" });
     const dayMonth = date.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
 
-    const publishedDate = new Date(forecast.published_at);
-    const updateTime = publishedDate.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-
     const rainfallIcon = forecast.rainfall && parseFloat(forecast.rainfall) > 0
         ? '<i class="fas fa-tint"></i>'
         : '<i class="fas fa-tint-slash"></i>';
@@ -246,96 +240,61 @@ export function getForecastCardHTML(forecast, options = {}) {
     <div class="forecast-card glassy ${weatherClass}" ${forecastDateAttr}>
       <div class="card-bg-anim"></div>
       <div class="card-content">
-        <div class="card-header-compact">
-          <div class="header-main">
-            <h2 class="forecast-date-compact">${dayName}</h2>
-            <span class="forecast-date-sub">${dayMonth}</span>
+        <div class="card-header-row">
+          <div class="header-date">
+            <h2 class="day-name">${dayName}</h2>
+            <span class="day-date">${dayMonth}</span>
           </div>
-          <div class="header-meta">
-            <span class="updated-badge">${updateTime}</span>
+          <div class="header-icon">
+            <span class="weather-icon-main">${icon}</span>
           </div>
         </div>
 
-        <div class="weather-hero">
-          <div class="hero-icon">
-            <span class="weather-icon-lg">${icon}</span>
-          </div>
+        <div class="stats-grid">
           ${hasTemps ? `
-          <div class="hero-temps">
-            <div class="temp-high">
-              <span class="temp-val">${forecast.max_temp}°</span>
-              <span class="temp-lbl">High</span>
-            </div>
-            <div class="temp-divider"></div>
-            <div class="temp-low">
-              <span class="temp-val">${forecast.min_temp}°</span>
-              <span class="temp-lbl">Low</span>
-            </div>
+          <div class="stat-item stat-temp">
+            <i class="fas fa-temperature-high"></i>
+            <span class="stat-value"><strong>${forecast.max_temp}°</strong> / ${forecast.min_temp}°</span>
           </div>
           ` : ''}
-        </div>
-
-        <div class="weather-details">
-          ${windDisplay || forecast.rainfall ? `
-          <div class="details-row">
-            ${windDisplay ? `
-            <div class="detail-item">
-              <i class="fas fa-wind"></i>
-              <span>${windDisplay}</span>
-            </div>
-            ` : ''}
-            ${forecast.rainfall ? `
-            <div class="detail-item">
-              ${rainfallIcon}
-              <span>${formatRainfall(forecast.rainfall)}</span>
-            </div>
-            ` : ''}
+          ${windDisplay ? `
+          <div class="stat-item stat-wind">
+            <i class="fas fa-wind"></i>
+            <span class="stat-value">${windDisplay}</span>
           </div>
           ` : ''}
-
-          ${forecast.sun || forecast.tides ? `
-          <div class="details-row">
-            ${forecast.sun ? `
-            <div class="detail-item">
-              <i class="fas fa-sun"></i>
-              <span>${forecast.sun.sunrise} – ${forecast.sun.sunset}</span>
-            </div>
-            ` : ''}
-            ${forecast.tides && forecast.tides.high.length > 0 ? `
-            <div class="detail-item">
-              <i class="fas fa-water"></i>
-              <span>High ${forecast.tides.high.map(t => t.time).join(', ')}</span>
-            </div>
-            ` : ''}
+          ${forecast.rainfall ? `
+          <div class="stat-item stat-rain">
+            ${rainfallIcon}
+            <span class="stat-value">${formatRainfall(forecast.rainfall)}</span>
           </div>
           ` : ''}
-
+          ${forecast.sun ? `
+          <div class="stat-item stat-sun">
+            <i class="fas fa-sun"></i>
+            <span class="stat-value">${forecast.sun.sunrise} – ${forecast.sun.sunset}</span>
+          </div>
+          ` : ''}
+          ${forecast.tides && forecast.tides.high.length > 0 ? `
+          <div class="stat-item stat-tide">
+            <i class="fas fa-water"></i>
+            <span class="stat-value">${forecast.tides.high.map(t => t.time).join(', ')}</span>
+          </div>
+          ` : ''}
           ${forecast.visibility ? `
-          <div class="details-row">
-            <div class="detail-item detail-full">
-              <i class="fas fa-eye"></i>
-              <span>${forecast.visibility}</span>
-            </div>
+          <div class="stat-item stat-vis">
+            <i class="fas fa-eye"></i>
+            <span class="stat-value">${forecast.visibility}</span>
           </div>
           ` : ''}
         </div>
 
-        <div class="forecast-description">
-          <p>${forecast.description}</p>
+        <div class="card-text">
+          <p class="description-text">${forecast.description}</p>
+          ${forecast.wind_details ? `<p class="wind-text">${forecast.wind_details}</p>` : ''}
+          ${forecast.comments ? `<p class="comment-text"><i class="fas fa-info-circle"></i> ${forecast.comments}</p>` : ''}
         </div>
-
-        ${forecast.wind_details ? `
-        <div class="wind-extended">
-          <span>${forecast.wind_details}</span>
-        </div>
-        ` : ''}
       </div>
-      ${forecast.comments ? `
-      <div class="card-footer">
-        <i class="fas fa-info-circle"></i>
-        <span>${forecast.comments}</span>
-      </div>
-      ` : ''}
     </div>
   `;
 }

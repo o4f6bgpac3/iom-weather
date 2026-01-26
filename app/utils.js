@@ -44,11 +44,13 @@ export function parseForecastDate(forecastDateStr, publishedAt) {
 /**
  * Formats rainfall value by adding "mm" after each numeric value or range.
  * Handles cases like "15-20, but 25-40 on hills" → "15-20mm, but 25-40mm on hills"
+ * Also handles decimals: "0-0.5" → "0-0.5mm"
  *
  * @param {string} value - The rainfall value string
  * @returns {string} - The formatted rainfall string with "mm" units
  */
 export function formatRainfall(value) {
     if (!value) return value;
-    return value.replace(/(\d+(-\d+)?)/g, "$1mm");
+    // Match numbers (with optional decimals) and ranges (with optional decimals)
+    return value.replace(/(\d+(?:\.\d+)?(?:-\d+(?:\.\d+)?)?)/g, "$1mm");
 }
