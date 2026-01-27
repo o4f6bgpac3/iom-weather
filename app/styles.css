@@ -243,30 +243,33 @@ main {
 
 @media (min-width: 768px) {
     .forecast-container {
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        grid-auto-rows: 520px; /* Uniform card height */
+        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+        grid-auto-rows: auto;
     }
 }
 
 @media (min-width: 1200px) {
     .forecast-container {
-        grid-template-columns: repeat(3, minmax(0, 1fr)); /* 3 columns with equal width */
+        grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 columns - more breathing room */
+        max-width: 1000px;
+        margin: 0 auto;
     }
 }
 
-/* Forecast card: flex container in column to ensure uniform heights */
+/* Forecast card: flex container with glassmorphism */
 .forecast-card {
     display: flex;
     flex-direction: column;
-    background: var(--card-bg);
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-card);
-    border: 1px solid var(--border-color-light);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     transition: transform var(--transition-speed) var(--transition-smooth),
                 box-shadow var(--transition-speed) var(--transition-smooth);
     overflow: hidden;
-    height: 520px;
-    max-height: 520px;
+    height: 480px;
     width: 100%;
     min-width: 0;
 }
@@ -2219,7 +2222,7 @@ footer a:hover {
     }
 }
 
-/* Rainy - Falling rain lines */
+/* Rainy - Subtle static texture (no animation) */
 .weather-rainy .weather-effect::before,
 .weather-cloudy-rainy .weather-effect::before {
     content: '';
@@ -2231,16 +2234,11 @@ footer a:hover {
     background: repeating-linear-gradient(
         180deg,
         transparent 0px,
-        transparent 20px,
-        rgba(255, 255, 255, 0.03) 20px,
-        rgba(255, 255, 255, 0.03) 22px
+        transparent 30px,
+        rgba(255, 255, 255, 0.015) 30px,
+        rgba(255, 255, 255, 0.015) 32px
     );
-    animation: rainFall 0.8s linear infinite;
-}
-
-@keyframes rainFall {
-    0% { transform: translateY(-22px); }
-    100% { transform: translateY(0); }
+    /* Animation disabled - too distracting */
 }
 
 /* Snowy - Drifting particles */
@@ -2372,23 +2370,23 @@ footer a:hover {
 
 .weather-rainy .compass-ring,
 .weather-cloudy-rainy .compass-ring {
-    border-color: rgba(126, 200, 232, 0.4);
-    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(30, 70, 100, 0.5);
+    background: rgba(255, 255, 255, 0.25);
 }
 
 .weather-rainy .compass-ring::before,
 .weather-cloudy-rainy .compass-ring::before {
-    background: #7ec8e8;
+    background: #1e4664;
 }
 
 .weather-rainy .compass-arrow,
 .weather-cloudy-rainy .compass-arrow {
-    background: linear-gradient(to bottom, #7ec8e8, transparent);
+    background: linear-gradient(to bottom, #1e4664, transparent);
 }
 
 .weather-rainy .compass-arrow::after,
 .weather-cloudy-rainy .compass-arrow::after {
-    border-bottom-color: #7ec8e8;
+    border-bottom-color: #1e4664;
 }
 
 .weather-rainy .visibility-stat i,
@@ -2495,19 +2493,20 @@ footer a:hover {
 
 .day-name-compact {
     font-family: var(--font-display);
-    font-size: 1.25rem;
-    font-weight: 800;
+    font-size: 1.1rem;
+    font-weight: 600;
     color: var(--text-color);
     margin: 0;
     line-height: 1.2;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
 }
 
 .day-date-compact {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: var(--text-color-secondary);
-    font-weight: 500;
-    margin-top: 0.1rem;
+    font-weight: 400;
+    margin-top: 0.15rem;
+    opacity: 0.7;
 }
 
 .header-temps {
@@ -2519,29 +2518,28 @@ footer a:hover {
 
 .temp-max-compact {
     font-family: var(--font-display);
-    font-size: 2.5rem;
-    font-weight: 800;
+    font-size: 3rem;
+    font-weight: 300;
     line-height: 1;
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 50%, #ff9f43 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--text-color);
+    letter-spacing: -0.03em;
 }
 
 .temp-sep-compact {
     font-family: var(--font-display);
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 300;
     color: var(--text-color-secondary);
-    opacity: 0.5;
+    opacity: 0.35;
+    margin: 0 0.1rem;
 }
 
 .temp-min-compact {
     font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #4dabf7;
-    opacity: 0.85;
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--text-color-secondary);
+    opacity: 0.5;
 }
 
 .header-icon-compact {
@@ -2567,25 +2565,29 @@ footer a:hover {
 .stat-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-color);
-    background: rgba(255, 255, 255, 0.35);
-    padding: 0.35rem 0.6rem;
-    border-radius: 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: transform 0.15s ease;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.3rem 0.5rem;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .stat-pill:hover {
-    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.stat-text {
+    font-size: 0.72rem;
 }
 
 /* Mini Compass for inline stats */
 .compass-mini {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     border: 1.5px solid rgba(74, 158, 206, 0.4);
     border-radius: 50%;
     position: relative;
@@ -2606,10 +2608,10 @@ footer a:hover {
 
 .compass-arrow-mini {
     position: absolute;
-    top: 3px;
+    top: 2px;
     left: 50%;
     width: 2px;
-    height: 12px;
+    height: 9px;
     background: linear-gradient(to bottom, #4a9ece, transparent);
     transform-origin: bottom center;
     margin-left: -1px;
@@ -2619,12 +2621,12 @@ footer a:hover {
 .compass-arrow-mini::after {
     content: '';
     position: absolute;
-    top: -3px;
+    top: -2px;
     left: 50%;
     transform: translateX(-50%);
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-bottom: 6px solid #4a9ece;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    border-bottom: 5px solid #4a9ece;
 }
 
 /* Stat pill icons */
@@ -2635,7 +2637,7 @@ footer a:hover {
     font-size: 0.9rem;
 }
 
-/* Compact Card Text */
+/* Compact Card Text - scrollable area for variable content */
 .card-text-compact {
     flex: 1;
     min-height: 0;
@@ -2643,105 +2645,137 @@ footer a:hover {
     flex-direction: column;
     gap: 0.4rem;
     overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+/* Subtle scrollbar styling */
+.card-text-compact::-webkit-scrollbar {
+    width: 4px;
+}
+
+.card-text-compact::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.card-text-compact::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 2px;
+}
+
+.card-text-compact::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+}
+
+/* Firefox scrollbar */
+.card-text-compact {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
 .description-text-compact {
     margin: 0;
-    font-size: 0.9rem;
-    line-height: 1.5;
+    font-size: 0.875rem;
+    line-height: 1.55;
     color: var(--text-color);
-    font-weight: 450;
+    font-weight: 400;
+    letter-spacing: 0.005em;
 }
 
-.wind-inline {
+/* Combined Wind Section */
+.wind-combined {
     display: flex;
-    align-items: flex-start;
-    gap: 0.4rem;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.3rem 0.5rem;
     font-size: 0.8rem;
     color: var(--text-color-secondary);
-    line-height: 1.4;
-    padding: 0.4rem 0.6rem;
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 6px;
-    border-left: 2px solid rgba(74, 158, 206, 0.4);
+    padding: 0.3rem 0;
+    margin-bottom: 0.2rem;
 }
 
-.wind-inline i {
-    color: #4a9ece;
-    margin-top: 0.1rem;
-    font-size: 0.75rem;
+.wind-primary {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.wind-speed {
+    color: var(--text-color);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.wind-dir {
+    color: var(--text-color-secondary);
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.wind-details {
+    color: var(--text-color-secondary);
+    font-weight: 400;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    flex-basis: 100%;
+    padding-left: 0.5rem;
+    font-style: italic;
+    opacity: 0.85;
 }
 
 .alert-compact {
     display: flex;
     align-items: flex-start;
-    gap: 0.4rem;
-    font-size: 0.8rem;
+    gap: 0.3rem;
+    font-size: 0.72rem;
     color: #92400e;
     line-height: 1.4;
-    padding: 0.4rem 0.6rem;
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(245, 158, 11, 0.08) 100%);
+    padding: 0.4rem 0.5rem;
+    margin-top: auto;
+    background: rgba(245, 158, 11, 0.1);
     border-radius: 6px;
-    border-left: 2px solid #f59e0b;
-    font-weight: 500;
+    font-weight: 400;
 }
 
 .alert-compact i {
-    color: #f59e0b;
-    margin-top: 0.1rem;
-    font-size: 0.75rem;
+    color: #d97706;
+    margin-top: 0.12rem;
+    font-size: 0.7rem;
+    flex-shrink: 0;
 }
 
-/* Combined Footer: Sun + Tides */
-.card-footer-compact {
+/* Minimal Footer: Sun + Tides - ultra-compact single line */
+.card-footer-minimal {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.4rem 0.75rem;
+    gap: 1rem;
+    padding: 0.5rem 0 0;
     margin-top: auto;
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 20px;
-    font-size: 0.75rem;
-    flex-wrap: wrap;
-}
-
-.sun-compact {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
+    font-size: 0.7rem;
     color: var(--text-color-secondary);
-    font-weight: 500;
+    opacity: 0.7;
 }
 
-.sun-compact i {
-    color: #f59e0b;
-    font-size: 0.85rem;
-}
-
-.sun-divider {
-    color: rgba(245, 158, 11, 0.4);
-    margin: 0 0.15rem;
-}
-
-.tides-compact {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-}
-
-.tide-compact {
-    display: flex;
+.footer-sun,
+.footer-tide {
+    display: inline-flex;
     align-items: center;
     gap: 0.2rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    color: var(--text-color-secondary);
+    font-weight: 400;
+    letter-spacing: 0.01em;
 }
 
-.tide-compact.high i { color: #2eb8a0; }
-.tide-compact.low i { color: #4a9ece; }
+.footer-sun i {
+    color: #f59e0b;
+    font-size: 0.65rem;
+    opacity: 0.8;
+}
+
+.footer-tide i {
+    font-size: 0.55rem;
+    opacity: 0.6;
+}
+.footer-tide.high i { color: #2eb8a0; }
+.footer-tide.low i { color: #4a9ece; }
 
 /* Weather theme overrides for compact layout */
 .weather-rainy .header-compact,
@@ -2762,46 +2796,38 @@ footer a:hover {
 
 .weather-rainy .temp-max-compact,
 .weather-cloudy-rainy .temp-max-compact {
-    background: linear-gradient(135deg, #1a5490 0%, #0c5eb8 50%, #3d3a9e 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
+    color: #1a3a5c;
 }
 
 .weather-rainy .temp-min-compact,
 .weather-cloudy-rainy .temp-min-compact {
-    color: #1a6eb8;
-}
-
-.weather-rainy .temp-sep-compact,
-.weather-cloudy-rainy .temp-sep-compact {
-    color: rgba(0, 0, 0, 0.3);
+    color: #4a6a8a;
 }
 
 .weather-rainy .stat-pill,
 .weather-cloudy-rainy .stat-pill {
-    background: rgba(255, 255, 255, 0.45);
     color: #333;
 }
 
 .weather-rainy .compass-mini,
 .weather-cloudy-rainy .compass-mini {
-    border-color: rgba(126, 200, 232, 0.4);
-    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(30, 70, 100, 0.5);
+    background: rgba(255, 255, 255, 0.25);
 }
 
 .weather-rainy .compass-mini::before,
 .weather-cloudy-rainy .compass-mini::before {
-    background: #7ec8e8;
+    background: #1e4664;
 }
 
 .weather-rainy .compass-arrow-mini,
 .weather-cloudy-rainy .compass-arrow-mini {
-    background: linear-gradient(to bottom, #7ec8e8, transparent);
+    background: linear-gradient(to bottom, #1e4664, transparent);
 }
 
 .weather-rainy .compass-arrow-mini::after,
 .weather-cloudy-rainy .compass-arrow-mini::after {
-    border-bottom-color: #7ec8e8;
+    border-bottom-color: #1e4664;
 }
 
 .weather-rainy .vis-pill i,
@@ -2814,23 +2840,20 @@ footer a:hover {
     color: #222;
 }
 
-.weather-rainy .wind-inline,
-.weather-cloudy-rainy .wind-inline {
-    background: rgba(255, 255, 255, 0.35);
+.weather-rainy .wind-combined,
+.weather-cloudy-rainy .wind-combined {
     color: #444;
-    border-left-color: rgba(74, 158, 206, 0.6);
 }
 
-.weather-rainy .wind-inline i,
-.weather-cloudy-rainy .wind-inline i {
-    color: #2980b9;
+.weather-rainy .wind-details,
+.weather-cloudy-rainy .wind-details {
+    color: #555;
 }
 
 .weather-rainy .alert-compact,
 .weather-cloudy-rainy .alert-compact {
-    background: linear-gradient(135deg, rgba(255, 210, 140, 0.4) 0%, rgba(255, 185, 100, 0.35) 100%);
+    background: rgba(255, 200, 120, 0.25);
     color: #7a4a1a;
-    border-left-color: #d4943d;
 }
 
 .weather-rainy .alert-compact i,
@@ -2838,18 +2861,8 @@ footer a:hover {
     color: #b8860b;
 }
 
-.weather-rainy .card-footer-compact,
-.weather-cloudy-rainy .card-footer-compact {
-    background: rgba(255, 255, 255, 0.25);
-}
-
-.weather-rainy .sun-compact,
-.weather-cloudy-rainy .sun-compact {
-    color: #555;
-}
-
-.weather-rainy .tide-compact,
-.weather-cloudy-rainy .tide-compact {
+.weather-rainy .card-footer-minimal,
+.weather-cloudy-rainy .card-footer-minimal {
     color: #555;
 }
 
@@ -2868,13 +2881,10 @@ footer a:hover {
 }
 
 .weather-sunny .temp-max-compact {
-    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ffcc00 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
+    color: #2a2a2a;
 }
 
 .weather-sunny .stat-pill {
-    background: rgba(255, 255, 255, 0.45);
     color: #333;
 }
 
@@ -2882,18 +2892,21 @@ footer a:hover {
     color: #222;
 }
 
-.weather-sunny .wind-inline {
-    background: rgba(255, 255, 255, 0.35);
+.weather-sunny .wind-combined {
     color: #444;
 }
 
+.weather-sunny .wind-details {
+    color: #555;
+}
+
 .weather-sunny .alert-compact {
-    background: linear-gradient(135deg, rgba(255, 210, 140, 0.4) 0%, rgba(255, 185, 100, 0.35) 100%);
+    background: rgba(255, 200, 120, 0.3);
     color: #7a4a1a;
 }
 
-.weather-sunny .card-footer-compact {
-    background: rgba(255, 255, 255, 0.25);
+.weather-sunny .card-footer-minimal {
+    color: #555;
 }
 
 /* Responsive adjustments for compact layout */
@@ -2911,15 +2924,15 @@ footer a:hover {
     }
 
     .temp-max-compact {
-        font-size: 2rem;
+        font-size: 2.5rem;
     }
 
     .temp-min-compact {
-        font-size: 1.25rem;
+        font-size: 1rem;
     }
 
     .temp-sep-compact {
-        font-size: 1.25rem;
+        font-size: 1rem;
     }
 
     .weather-icon-compact {
@@ -2932,17 +2945,21 @@ footer a:hover {
     }
 
     .stat-pill {
-        font-size: 0.75rem;
-        padding: 0.3rem 0.5rem;
+        font-size: 0.7rem;
+        padding: 0.25rem 0.4rem;
+    }
+
+    .stat-text {
+        font-size: 0.68rem;
     }
 
     .compass-mini {
-        width: 26px;
-        height: 26px;
+        width: 20px;
+        height: 20px;
     }
 
     .compass-arrow-mini {
-        height: 10px;
+        height: 7px;
         top: 2px;
     }
 
@@ -2950,15 +2967,24 @@ footer a:hover {
         font-size: 0.85rem;
     }
 
-    .wind-inline,
-    .alert-compact {
+    .wind-combined {
         font-size: 0.75rem;
-        padding: 0.35rem 0.5rem;
     }
 
-    .card-footer-compact {
-        font-size: 0.7rem;
-        padding: 0.35rem 0.6rem;
+    .alert-compact {
+        font-size: 0.72rem;
+        padding: 0.35rem 0.45rem;
+    }
+
+    .card-footer-minimal {
+        font-size: 0.65rem;
         gap: 0.5rem;
+    }
+
+    /* Allow taller cards on mobile for full-width layout */
+    .forecast-card {
+        height: auto;
+        min-height: 400px;
+        max-height: 520px;
     }
 }
