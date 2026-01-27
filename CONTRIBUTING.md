@@ -81,7 +81,7 @@ Thank you for your interest in contributing! This guide will help you get starte
 cd worker
 wrangler dev
 ```
-The API will be available at `http://localhost:8787`
+The API will be available at `http://localhost:8790`
 
 **Frontend:**
 ```bash
@@ -90,7 +90,7 @@ npx serve .
 ```
 Or simply open `app/index.html` in your browser.
 
-The frontend automatically detects the environment and connects to `localhost:8787` during local development.
+The frontend automatically detects the environment and connects to `localhost:8790` during local development.
 
 ## Project Structure
 

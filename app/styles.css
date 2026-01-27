@@ -1031,19 +1031,18 @@ footer a:hover {
   70% { transform: translateY(0); }
 }
 .weather-rainy .day-name {
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  color: #222;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
 }
 .weather-rainy .day-date {
-  color: rgba(255, 255, 255, 0.8);
+  color: #444;
 }
 .weather-rainy .description-text {
-  color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  color: #222;
 }
 .weather-rainy .stat-item {
-  background: rgba(255, 255, 255, 0.22);
-  color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.45);
+  color: #333;
 }
 .weather-rainy .stat-temp i { color: #ff7b6b; }
 .weather-rainy .stat-wind i { color: #7ec8e8; }
@@ -1058,17 +1057,17 @@ footer a:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 .weather-rainy .wind-text {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.9);
-  border-left-color: rgba(126, 200, 232, 0.6);
+  background: rgba(255, 255, 255, 0.35);
+  color: #444;
+  border-left-color: rgba(74, 158, 206, 0.6);
 }
 .weather-rainy .comment-text {
-  background: linear-gradient(135deg, rgba(255, 210, 140, 0.22) 0%, rgba(255, 185, 100, 0.18) 100%);
-  color: rgba(255, 245, 220, 0.95);
-  border-left-color: rgba(255, 200, 130, 0.7);
+  background: linear-gradient(135deg, rgba(255, 210, 140, 0.4) 0%, rgba(255, 185, 100, 0.35) 100%);
+  color: #7a5020;
+  border-left-color: #d4943d;
 }
 .weather-rainy .comment-text i {
-  color: rgba(255, 210, 150, 0.85);
+  color: #b8860b;
 }
 
 /* Snowy theme */
@@ -1128,19 +1127,18 @@ footer a:hover {
   70% { transform: translateY(0); }
 }
 .weather-cloudy-rainy .day-name {
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  color: #222;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
 }
 .weather-cloudy-rainy .day-date {
-  color: rgba(255, 255, 255, 0.8);
+  color: #444;
 }
 .weather-cloudy-rainy .description-text {
-  color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  color: #222;
 }
 .weather-cloudy-rainy .stat-item {
-  background: rgba(255, 255, 255, 0.22);
-  color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.45);
+  color: #333;
 }
 .weather-cloudy-rainy .stat-temp i { color: #ff7b6b; }
 .weather-cloudy-rainy .stat-wind i { color: #7ec8e8; }
@@ -1155,17 +1153,17 @@ footer a:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 .weather-cloudy-rainy .wind-text {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.9);
-  border-left-color: rgba(126, 200, 232, 0.6);
+  background: rgba(255, 255, 255, 0.35);
+  color: #444;
+  border-left-color: rgba(74, 158, 206, 0.6);
 }
 .weather-cloudy-rainy .comment-text {
-  background: linear-gradient(135deg, rgba(255, 210, 140, 0.22) 0%, rgba(255, 185, 100, 0.18) 100%);
-  color: rgba(255, 245, 220, 0.95);
-  border-left-color: rgba(255, 200, 130, 0.7);
+  background: linear-gradient(135deg, rgba(255, 210, 140, 0.4) 0%, rgba(255, 185, 100, 0.35) 100%);
+  color: #7a5020;
+  border-left-color: #d4943d;
 }
 .weather-cloudy-rainy .comment-text i {
-  color: rgba(255, 210, 150, 0.85);
+  color: #b8860b;
 }
 
 /* Sunny-cloudy theme */
@@ -2310,66 +2308,66 @@ footer a:hover {
 
 .weather-rainy .temp-min,
 .weather-cloudy-rainy .temp-min {
-    color: rgba(255, 255, 255, 0.8);
+    color: #1a6eb8;
 }
 
 .weather-rainy .temp-separator,
 .weather-cloudy-rainy .temp-separator {
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.3);
 }
 
 .weather-rainy .temp-range-bar,
 .weather-cloudy-rainy .temp-range-bar {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .weather-rainy .visual-stat-label,
 .weather-cloudy-rainy .visual-stat-label {
-    color: rgba(255, 255, 255, 0.75);
+    color: #555;
 }
 
 .weather-rainy .sun-time,
 .weather-cloudy-rainy .sun-time {
-    color: rgba(255, 255, 255, 0.8);
+    color: #444;
 }
 
 .weather-rainy .sun-arc,
 .weather-cloudy-rainy .sun-arc {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .weather-rainy .tides-strip,
 .weather-cloudy-rainy .tides-strip {
-    color: rgba(255, 255, 255, 0.7);
+    color: #555;
 }
 
 .weather-rainy .wind-detail-box,
 .weather-cloudy-rainy .wind-detail-box {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.85);
-    border-left-color: rgba(126, 200, 232, 0.5);
+    background: rgba(255, 255, 255, 0.35);
+    color: #444;
+    border-left-color: rgba(74, 158, 206, 0.6);
 }
 
 .weather-rainy .wind-detail-box i,
 .weather-cloudy-rainy .wind-detail-box i {
-    color: #7ec8e8;
+    color: #2980b9;
 }
 
 .weather-rainy .alert-box,
 .weather-cloudy-rainy .alert-box {
-    background: linear-gradient(135deg, rgba(255, 210, 140, 0.2) 0%, rgba(255, 185, 100, 0.15) 100%);
-    color: rgba(255, 240, 200, 0.95);
-    border-left-color: rgba(255, 200, 130, 0.6);
+    background: linear-gradient(135deg, rgba(255, 210, 140, 0.4) 0%, rgba(255, 185, 100, 0.35) 100%);
+    color: #7a4a1a;
+    border-left-color: #d4943d;
 }
 
 .weather-rainy .alert-box i,
 .weather-cloudy-rainy .alert-box i {
-    color: rgba(255, 210, 150, 0.85);
+    color: #b8860b;
 }
 
 .weather-rainy .droplet.empty,
 .weather-cloudy-rainy .droplet.empty {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.12);
 }
 
 .weather-rainy .compass-ring,
@@ -2748,41 +2746,41 @@ footer a:hover {
 /* Weather theme overrides for compact layout */
 .weather-rainy .header-compact,
 .weather-cloudy-rainy .header-compact {
-    color: #fff;
+    color: #222;
 }
 
 .weather-rainy .day-name-compact,
 .weather-cloudy-rainy .day-name-compact {
-    color: #fff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    color: #222;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
 }
 
 .weather-rainy .day-date-compact,
 .weather-cloudy-rainy .day-date-compact {
-    color: rgba(255, 255, 255, 0.75);
+    color: #444;
 }
 
 .weather-rainy .temp-max-compact,
 .weather-cloudy-rainy .temp-max-compact {
-    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 50%, #6c5ce7 100%);
+    background: linear-gradient(135deg, #1a5490 0%, #0c5eb8 50%, #3d3a9e 100%);
     -webkit-background-clip: text;
     background-clip: text;
 }
 
 .weather-rainy .temp-min-compact,
 .weather-cloudy-rainy .temp-min-compact {
-    color: rgba(255, 255, 255, 0.7);
+    color: #1a6eb8;
 }
 
 .weather-rainy .temp-sep-compact,
 .weather-cloudy-rainy .temp-sep-compact {
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.3);
 }
 
 .weather-rainy .stat-pill,
 .weather-cloudy-rainy .stat-pill {
-    background: rgba(255, 255, 255, 0.18);
-    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.45);
+    color: #333;
 }
 
 .weather-rainy .compass-mini,
@@ -2813,51 +2811,51 @@ footer a:hover {
 
 .weather-rainy .description-text-compact,
 .weather-cloudy-rainy .description-text-compact {
-    color: rgba(255, 255, 255, 0.95);
+    color: #222;
 }
 
 .weather-rainy .wind-inline,
 .weather-cloudy-rainy .wind-inline {
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.85);
-    border-left-color: rgba(126, 200, 232, 0.5);
+    background: rgba(255, 255, 255, 0.35);
+    color: #444;
+    border-left-color: rgba(74, 158, 206, 0.6);
 }
 
 .weather-rainy .wind-inline i,
 .weather-cloudy-rainy .wind-inline i {
-    color: #7ec8e8;
+    color: #2980b9;
 }
 
 .weather-rainy .alert-compact,
 .weather-cloudy-rainy .alert-compact {
-    background: linear-gradient(135deg, rgba(255, 210, 140, 0.15) 0%, rgba(255, 185, 100, 0.1) 100%);
-    color: rgba(255, 240, 200, 0.95);
-    border-left-color: rgba(255, 200, 130, 0.6);
+    background: linear-gradient(135deg, rgba(255, 210, 140, 0.4) 0%, rgba(255, 185, 100, 0.35) 100%);
+    color: #7a4a1a;
+    border-left-color: #d4943d;
 }
 
 .weather-rainy .alert-compact i,
 .weather-cloudy-rainy .alert-compact i {
-    color: rgba(255, 210, 150, 0.85);
+    color: #b8860b;
 }
 
 .weather-rainy .card-footer-compact,
 .weather-cloudy-rainy .card-footer-compact {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.25);
 }
 
 .weather-rainy .sun-compact,
 .weather-cloudy-rainy .sun-compact {
-    color: rgba(255, 255, 255, 0.75);
+    color: #555;
 }
 
 .weather-rainy .tide-compact,
 .weather-cloudy-rainy .tide-compact {
-    color: rgba(255, 255, 255, 0.7);
+    color: #555;
 }
 
 .weather-rainy .droplet.empty,
 .weather-cloudy-rainy .droplet.empty {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.12);
 }
 
 /* Sunny theme compact adjustments */

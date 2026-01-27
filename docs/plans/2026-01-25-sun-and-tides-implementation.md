@@ -616,8 +616,8 @@ Verify:
 **Step 1: Test the complete flow**
 
 1. Start local dev server: `npx wrangler dev`
-2. Trigger scheduled task: `curl -X POST http://localhost:8787/__scheduled`
-3. Check API response: `curl http://localhost:8787/`
+2. Trigger scheduled task: `curl -X POST http://localhost:8790/__scheduled`
+3. Check API response: `curl http://localhost:8790/`
 4. Verify frontend displays correctly
 
 **Step 2: Final commit**

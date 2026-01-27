@@ -5,7 +5,7 @@
 
 /**
  * Detect the API URL at runtime based on the current page location.
- * - Local development (localhost/127.0.0.1): uses local worker on port 8787
+ * - Local development (localhost/127.0.0.1): uses local worker on port 8790
  * - Production: uses the configured production worker URL
  *
  * @returns {string} - The API base URL
@@ -15,7 +15,7 @@ function detectApiUrl() {
 
     // Local development
     if (hostname === "localhost" || hostname === "127.0.0.1") {
-        return "http://localhost:8787";
+        return "http://localhost:8790";
     }
 
     // Production URL
