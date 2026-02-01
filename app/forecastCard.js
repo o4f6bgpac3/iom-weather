@@ -336,8 +336,13 @@ export function getForecastCardHTML(forecast, options = {}) {
     const cardFooter = hasFooter ? `
         <div class="card-footer-minimal">
             ${forecast.sun ? `<span class="footer-sun"><i class="fas fa-sun"></i>${forecast.sun.sunrise}-${forecast.sun.sunset}</span>` : ''}
-            ${forecast.tides?.high?.length > 0 ? `<span class="footer-tide high"><i class="fas fa-arrow-up"></i>${forecast.tides.high.map(t => t.time).join(', ')}</span>` : ''}
-            ${forecast.tides?.low?.length > 0 ? `<span class="footer-tide low"><i class="fas fa-arrow-down"></i>${forecast.tides.low.map(t => t.time).join(', ')}</span>` : ''}
+            ${forecast.tides?.high?.length > 0 || forecast.tides?.low?.length > 0 ? `
+                <span class="footer-tides">
+                    <i class="fas fa-water tide-icon"></i>
+                    ${forecast.tides?.high?.length > 0 ? `<span class="tide-entry high"><i class="fas fa-caret-up"></i>${forecast.tides.high.map(t => t.time).join(', ')}</span>` : ''}
+                    ${forecast.tides?.low?.length > 0 ? `<span class="tide-entry low"><i class="fas fa-caret-down"></i>${forecast.tides.low.map(t => t.time).join(', ')}</span>` : ''}
+                </span>
+            ` : ''}
         </div>
     ` : '';
 

@@ -2756,10 +2756,10 @@ footer a:hover {
 }
 
 .footer-sun,
-.footer-tide {
+.footer-tides {
     display: inline-flex;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0.25rem;
     font-weight: 400;
     letter-spacing: 0.01em;
 }
@@ -2770,12 +2770,43 @@ footer a:hover {
     opacity: 0.8;
 }
 
-.footer-tide i {
-    font-size: 0.55rem;
-    opacity: 0.6;
+/* Tides grouping with water icon */
+.footer-tides .tide-icon {
+    color: #2eb8a0;
+    font-size: 0.7rem;
+    opacity: 0.85;
+    margin-right: 0.15rem;
 }
-.footer-tide.high i { color: #2eb8a0; }
-.footer-tide.low i { color: #4a9ece; }
+
+.tide-entry {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.tide-entry i {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+.tide-entry.high i { color: #2eb8a0; }
+.tide-entry.low i { color: #4a9ece; }
+
+/* Weather theme overrides for tide icons */
+.weather-sunny .footer-tides .tide-icon { color: #1a8a7a; }
+.weather-sunny .tide-entry.high i { color: #1a8a7a; }
+.weather-sunny .tide-entry.low i { color: #2a6a9e; }
+
+.weather-sunny-cloudy .footer-tides .tide-icon { color: #1f9080; }
+.weather-sunny-cloudy .tide-entry.high i { color: #1f9080; }
+.weather-sunny-cloudy .tide-entry.low i { color: #3070a0; }
+
+.weather-rainy .footer-tides .tide-icon,
+.weather-cloudy-rainy .footer-tides .tide-icon { color: #15a090; }
+.weather-rainy .tide-entry.high i,
+.weather-cloudy-rainy .tide-entry.high i { color: #15a090; }
+.weather-rainy .tide-entry.low i,
+.weather-cloudy-rainy .tide-entry.low i { color: #2080b0; }
 
 /* Weather theme overrides for compact layout */
 .weather-rainy .header-compact,
