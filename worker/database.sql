@@ -36,3 +36,21 @@ CREATE TABLE IF NOT EXISTS tides (
 );
 
 CREATE INDEX IF NOT EXISTS idx_tides_date ON tides(tide_date);
+
+-- Flattened view that picks the best forecast per date:
+-- prefers same-day forecasts, falls back to the most recent earlier one.
+-- Text-to-SQL queries target this view so the LLM never sees the CTE logic.
+CREATE VIEW IF NOT EXISTS weather AS
+SELECT fc.forecast_date, fc.min_temp, fc.max_temp, fc.wind_speed,
+       fc.wind_direction, fc.description, fc.rainfall,
+       fc.rainfall_min, fc.rainfall_max, fc.visibility,
+       fc.visibility_code, fc.published_at
+FROM forecast_items fc
+INNER JOIN (
+    SELECT forecast_date, COALESCE(
+        MAX(CASE WHEN DATE(published_at) = forecast_date THEN published_at END),
+        MAX(CASE WHEN DATE(published_at) < forecast_date THEN published_at END)
+    ) AS best_pub
+    FROM forecast_items
+    GROUP BY forecast_date
+) best ON fc.forecast_date = best.forecast_date AND fc.published_at = best.best_pub;

@@ -1,4 +1,4 @@
-import { CONFIG, getLLMConfig } from "./config.js";
+import { getLLMConfig } from "./config.js";
 
 /**
  * Log LLM request and response for debugging.
@@ -6,7 +6,6 @@ import { CONFIG, getLLMConfig } from "./config.js";
 function logLLMInteraction(label, systemPrompt, userPrompt, response, error = null) {
     console.log(`\n===== LLM ${label} =====`);
     console.log(`[System Prompt] (${systemPrompt.length} chars):`);
-    // Log first 500 chars of system prompt to avoid flooding logs
     console.log(systemPrompt.length > 500 ? systemPrompt.substring(0, 500) + "..." : systemPrompt);
     console.log(`\n[User Prompt]:`);
     console.log(userPrompt);
@@ -20,21 +19,19 @@ function logLLMInteraction(label, systemPrompt, userPrompt, response, error = nu
 }
 
 /**
- * Core LLM request function that handles both structured and natural language responses.
- * Consolidates the common logic for API calls, error handling, and response processing.
+ * Core LLM request function.
  *
  * @param {string} systemPrompt - The system prompt with instructions
  * @param {string} userPrompt - The user's question/prompt
  * @param {Object} env - Environment bindings including LLM_API_KEY
  * @param {Object} options - Request options
- * @param {number} options.temperature - LLM temperature (0.1 for structured, 0.7 for natural)
+ * @param {number} options.temperature - LLM temperature
  * @param {number} options.maxTokens - Maximum tokens in response
- * @param {boolean} options.parseAsJson - Whether to parse response as JSON
- * @returns {Promise<Object|string>} - Parsed JSON object or text response
+ * @returns {Promise<string>} - Text response
  * @throws {Error} - On timeout, API errors, or invalid responses
  */
 async function makeLLMRequest(systemPrompt, userPrompt, env, options) {
-    const { temperature, maxTokens, parseAsJson } = options;
+    const { temperature, maxTokens } = options;
     const llmConfig = getLLMConfig(env);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), llmConfig.timeoutMs);
@@ -60,7 +57,6 @@ async function makeLLMRequest(systemPrompt, userPrompt, env, options) {
 
         clearTimeout(timeoutId);
 
-        // Handle rate limit (Venice API cap hit)
         if (response.status === 429) {
             const resetTime = response.headers.get("x-ratelimit-reset-requests");
             const error = new Error("Venice API rate limit exceeded");
@@ -70,7 +66,6 @@ async function makeLLMRequest(systemPrompt, userPrompt, env, options) {
             throw error;
         }
 
-        // Handle auth errors
         if (response.status === 401 || response.status === 403) {
             const error = new Error(`Venice API authentication failed: ${response.status}`);
             error.isAuthError = true;
@@ -78,14 +73,12 @@ async function makeLLMRequest(systemPrompt, userPrompt, env, options) {
             throw error;
         }
 
-        // Handle server errors (may retry)
         if (response.status >= 500) {
             const error = new Error(`Venice API server error: ${response.status}`);
             error.isServerError = true;
             throw error;
         }
 
-        // Handle other non-OK responses
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`Venice API error: ${response.status} - ${errorText}`);
@@ -98,8 +91,7 @@ async function makeLLMRequest(systemPrompt, userPrompt, env, options) {
             throw new Error("Empty response from Venice API");
         }
 
-        // Return parsed JSON or trimmed text based on options
-        return parseAsJson ? parseJSONResponse(content) : content.trim();
+        return content.trim();
     } catch (error) {
         clearTimeout(timeoutId);
 
@@ -115,13 +107,6 @@ async function makeLLMRequest(systemPrompt, userPrompt, env, options) {
 
 /**
  * Execute an LLM request with retry logic for server errors.
- *
- * @param {string} systemPrompt - The system prompt
- * @param {string} userPrompt - The user prompt
- * @param {Object} env - Environment bindings
- * @param {Object} options - Request options (temperature, maxTokens, parseAsJson)
- * @param {string} logLabel - Label for logging
- * @returns {Promise<Object|string>} - LLM response
  */
 async function executeWithRetry(systemPrompt, userPrompt, env, options, logLabel) {
     const llmConfig = getLLMConfig(env);
@@ -136,12 +121,10 @@ async function executeWithRetry(systemPrompt, userPrompt, env, options, logLabel
             lastError = error;
             logLLMInteraction(logLabel, systemPrompt, userPrompt, null, error);
 
-            // Don't retry on rate limits or auth errors
             if (error.isRateLimit || error.isAuthError) {
                 throw error;
             }
 
-            // Retry on server errors
             if (attempt < llmConfig.maxRetries && error.isServerError) {
                 console.log(`LLM request failed (attempt ${attempt + 1}), retrying...`);
                 await sleep(1000);
@@ -156,53 +139,104 @@ async function executeWithRetry(systemPrompt, userPrompt, env, options, logLabel
 }
 
 /**
- * Query the LLM for structured JSON output.
- * Uses low temperature for consistent, deterministic responses.
+ * Generate SQL from a natural language question.
+ * Uses low temperature for deterministic output.
  *
- * @param {string} systemPrompt - The system prompt with instructions
- * @param {string} userPrompt - The user's question formatted as a prompt
- * @param {Object} env - Environment bindings including LLM_API_KEY
- * @returns {Promise<Object>} - Parsed JSON response from LLM
- * @throws {Error} - On timeout, API errors, or invalid responses
+ * @param {string} systemPrompt - SQL generation system prompt
+ * @param {string} question - The user's weather question
+ * @param {Object} env - Environment bindings
+ * @returns {Promise<string>} - Raw SQL string or sentinel (UNANSWERABLE:/REJECTED:)
  */
-export async function queryLLM(systemPrompt, userPrompt, env) {
+export async function generateSQL(systemPrompt, question, env) {
     const llmConfig = getLLMConfig(env);
-    return executeWithRetry(systemPrompt, userPrompt, env, {
+    return executeWithRetry(systemPrompt, question, env, {
         temperature: llmConfig.temperature.structured,
         maxTokens: llmConfig.maxTokens.structured,
-        parseAsJson: true,
-    }, "QUERY PARSE");
+    }, "SQL GENERATION");
 }
 
 /**
- * Query the LLM for a natural language text response.
- * Uses higher temperature for more varied, natural responses.
+ * Generate SQL with self-correction on failure.
+ * If the first SQL fails validation or execution, feeds the error back
+ * to the model for one retry attempt.
  *
- * @param {string} systemPrompt - The system prompt with instructions
- * @param {string} userPrompt - The user's question with data context
- * @param {Object} env - Environment bindings including LLM_API_KEY
- * @returns {Promise<string>} - Text response from LLM
- * @throws {Error} - On timeout, API errors, or invalid responses
+ * @param {string} systemPrompt - SQL generation system prompt
+ * @param {string} question - The user's weather question
+ * @param {Object} env - Environment bindings
+ * @param {Function} validateAndExecute - Callback: (sql) => { results } or throws
+ * @returns {Promise<{ sql: string, results: Array }>}
+ */
+export async function generateSQLWithRetry(systemPrompt, question, env, validateAndExecute) {
+    const sql = await generateSQL(systemPrompt, question, env);
+
+    // Check for sentinel values before validation
+    if (isSentinel(sql)) {
+        return { sql, results: null };
+    }
+
+    // Strip markdown code fences if the model wraps SQL in them
+    const cleanSql = stripCodeFences(sql);
+
+    try {
+        const results = await validateAndExecute(cleanSql);
+        return { sql: cleanSql, results };
+    } catch (firstError) {
+        console.log("SQL self-correction: first attempt failed:", firstError.message);
+
+        // Self-correction: feed the error back for one retry
+        const retryPrompt = `${question}\n\nYour previous SQL returned an error: ${firstError.message}\nPlease generate a corrected query.`;
+        const retrySql = await generateSQL(systemPrompt, retryPrompt, env);
+
+        if (isSentinel(retrySql)) {
+            return { sql: retrySql, results: null };
+        }
+
+        const cleanRetrySql = stripCodeFences(retrySql);
+        const results = await validateAndExecute(cleanRetrySql);
+        return { sql: cleanRetrySql, results };
+    }
+}
+
+/**
+ * Check if the LLM response is a sentinel value rather than SQL.
+ */
+export function isSentinel(response) {
+    const upper = response.toUpperCase();
+    return upper.startsWith("UNANSWERABLE:") || upper.startsWith("REJECTED:");
+}
+
+/**
+ * Parse a sentinel response into { type, reason }.
+ */
+export function parseSentinel(response) {
+    const colonIndex = response.indexOf(":");
+    const type = response.substring(0, colonIndex).trim().toLowerCase();
+    const reason = response.substring(colonIndex + 1).trim();
+    return { type, reason };
+}
+
+/**
+ * Strip markdown code fences from LLM output.
+ */
+function stripCodeFences(text) {
+    const match = text.match(/^```(?:sql)?\s*\n?([\s\S]*?)```$/m);
+    if (match) return match[1].trim();
+    return text.trim();
+}
+
+/**
+ * Generate a natural language response from query results.
  */
 export async function generateResponse(systemPrompt, userPrompt, env) {
     const llmConfig = getLLMConfig(env);
     return executeWithRetry(systemPrompt, userPrompt, env, {
         temperature: llmConfig.temperature.natural,
         maxTokens: llmConfig.maxTokens.natural,
-        parseAsJson: false,
     }, "RESPONSE GEN");
 }
 
 /**
  * Generate a streaming natural language response from the LLM.
- * Calls onChunk callback for each text delta received.
- *
- * @param {string} systemPrompt - The system prompt with instructions
- * @param {string} userPrompt - The user's question with data context
- * @param {Object} env - Environment bindings including LLM_API_KEY
- * @param {Function} onChunk - Callback for each text chunk: (text: string) => Promise<void>
- * @returns {Promise<string>} - Full text response
- * @throws {Error} - On timeout, API errors, or stream errors
  */
 export async function generateResponseStreaming(systemPrompt, userPrompt, env, onChunk) {
     const llmConfig = getLLMConfig(env);
@@ -235,7 +269,6 @@ export async function generateResponseStreaming(systemPrompt, userPrompt, env, o
 
         clearTimeout(timeoutId);
 
-        // Handle errors same as non-streaming
         if (response.status === 429) {
             const error = new Error("Venice API rate limit exceeded");
             error.isRateLimit = true;
@@ -259,7 +292,6 @@ export async function generateResponseStreaming(systemPrompt, userPrompt, env, o
             throw new Error(`Venice API error: ${response.status} - ${errorText}`);
         }
 
-        // Process the SSE stream
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullContent = "";
@@ -271,7 +303,7 @@ export async function generateResponseStreaming(systemPrompt, userPrompt, env, o
 
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split("\n");
-            buffer = lines.pop(); // Keep incomplete line in buffer
+            buffer = lines.pop();
 
             for (const line of lines) {
                 if (line.startsWith("data: ")) {
@@ -308,43 +340,6 @@ export async function generateResponseStreaming(systemPrompt, userPrompt, env, o
         console.error("Streaming error:", error.message);
         console.log("===== END STREAMING RESPONSE GEN (ERROR) =====\n");
         throw error;
-    }
-}
-
-/**
- * Parse JSON from LLM response, handling markdown code blocks.
- * The LLM sometimes wraps JSON in ```json blocks or includes extra text.
- *
- * @param {string} content - Raw LLM response content
- * @returns {Object} - Parsed JSON object
- * @throws {Error} - If no valid JSON can be extracted
- */
-function parseJSONResponse(content) {
-    // Try direct JSON parse first
-    try {
-        return JSON.parse(content);
-    } catch {
-        // Try to extract JSON from markdown code blocks
-        const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (jsonMatch) {
-            try {
-                return JSON.parse(jsonMatch[1].trim());
-            } catch {
-                // Fall through to next attempt
-            }
-        }
-
-        // Try to find JSON object in the content
-        const objectMatch = content.match(/\{[\s\S]*\}/);
-        if (objectMatch) {
-            try {
-                return JSON.parse(objectMatch[0]);
-            } catch {
-                // Fall through to error
-            }
-        }
-
-        throw new Error(`Invalid JSON in response: ${content.substring(0, 200)}`);
     }
 }
 
