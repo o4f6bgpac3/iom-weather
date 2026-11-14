@@ -2,7 +2,7 @@
  * IOM Weather Worker
  *
  * Cloudflare Worker that fetches weather forecasts from the Isle of Man
- * government RSS feed, parses them, and stores them in a D1 database.
+ * Met Office (weather.gov.im JSON API) and stores them in a D1 database.
  *
  * Main responsibilities:
  * - Scheduled fetching of weather data (cron trigger)
@@ -10,10 +10,9 @@
  * - Natural language query handling (via /ask endpoint)
  */
 
-import {XMLParser} from "fast-xml-parser";
 import { handleAskRequest, handleAskStreamRequest } from "./ask.js";
 import {CONFIG} from "./config.js";
-import {parseRainfallRange, parseVisibilityCode} from "./utils.js";
+import { fetchForecasts } from "./feedJson.js";
 import { getSunData } from "./sun.js";
 import { getTidesForDate, refreshTideData } from "./tides.js";
 
@@ -65,247 +64,21 @@ async function getLatestPublishedDate(env) {
     return result?.latest || "1970-01-01T00:00:00.000Z";
 }
 
-/**
- * Converts strings like "Today", "Tomorrow", or "Thursday, 13 February 2025"
- * into an ISO date (YYYY-MM-DD) using the published_at as a reference.
- */
-function parseForecastDate(dateStr, published_at) {
-    console.log("Parsing forecast date:", dateStr, "with published_at:", published_at);
-    const lower = dateStr.toLowerCase();
-    let result;
-    if (lower === "today") {
-        result = new Date(published_at);
-    } else if (lower === "tomorrow") {
-        const d = new Date(published_at);
-        d.setDate(d.getDate() + 1);
-        result = d;
-    } else if (dateStr.includes(",")) {
-        // Example: "Thursday, 13 February 2025"
-        const parts = dateStr.split(",");
-        if (parts.length > 1) {
-            result = new Date(parts[1].trim());
-        } else {
-            result = new Date(dateStr);
-        }
-    } else {
-        result = new Date(dateStr);
-    }
-    if (isNaN(result.getTime())) {
-        throw new Error("Invalid forecast date: " + dateStr);
-    }
-    const isoDate = result.toISOString().split("T")[0];
-    console.log("Parsed date result:", isoDate);
-    return isoDate;
-}
-
-/**
- * A helper to decode a few common HTML entities.
- */
-function decodeHtmlEntities(text) {
-    return text
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&amp;/g, "&");
-}
-
-/**
- * Parses a forecast section from the RSS feed description HTML.
- *
- * The Isle of Man government RSS feed contains HTML descriptions with
- * weather data structured using h2, h3, and p tags.
- *
- * ## Expected HTML Structure
- *
- * ```html
- * <h2>Today</h2>
- * <p>General weather description for the day</p>
- * <h3>Temperature</h3>
- * <p>Min. air temperature 5°C and max. air temperature 10°C</p>
- * <h3>Wind Speed</h3>
- * <p>15</p>
- * <h3>Wind Direction</h3>
- * <p>SW</p>
- * <h3>Visibility</h3>
- * <p>Good</p>
- * <h3>Rainfall (mm)</h3>
- * <p>0-5</p>
- * <h3>Comments</h3>
- * <p>Optional additional notes</p>
- * ```
- *
- * The h2 tag contains the date (can be "Today", "Tomorrow", or full date).
- * Each h3/p pair contains a data field and its value.
- *
- * @param {string} section - HTML section starting with <h2>
- * @param {string} published_at - ISO timestamp when the forecast was published
- * @returns {Object} - Parsed forecast object with normalized fields
- * @throws {Error} - If the HTML structure is invalid
- */
-function parseForecastSection(section, published_at) {
-    // Extract the forecast date from the <h2> header.
-    const h2Close = section.indexOf("</h2>");
-    if (h2Close === -1) {
-        throw new Error("No closing </h2> tag found in section: " + section);
-    }
-    // Remove the opening <h2> tag and trim.
-    const headerHtml = section.substring(0, h2Close).replace(/<h2>/i, "").trim();
-    const forecast_date = parseForecastDate(headerHtml, published_at);
-
-    // Look for a general description (the first <p> following the h2).
-    let description = "";
-    const afterH2 = section.substring(h2Close + 5).trim();
-    const descMatch = afterH2.match(/^<p>(.*?)<\/p>/);
-    if (descMatch) {
-        description = descMatch[1].trim();
-    }
-
-    // Build a dictionary from any h3/p pairs.
-    // This regex will match pairs like: <h3>Some Header</h3> followed by <p>Content</p>
-    const regex = /<h3>(.*?)<\/h3>\s*<p>(.*?)<\/p>/g;
-    let match;
-    const data = {};
-    while ((match = regex.exec(section)) !== null) {
-        const key = match[1].toLowerCase();
-        data[key] = match[2].trim();
-    }
-
-    // Build the forecast object.
-    const forecast = {
-        published_at,
-        forecast_date,
-        description,
-        min_temp: null,
-        max_temp: null,
-        wind_speed: null,
-        wind_direction: null,
-        wind_details: "",
-        visibility: "",
-        visibility_code: null, // Denormalized: 'good', 'moderate', 'poor'
-        comments: null,
-        rainfall: null,
-        rainfall_min: null, // Denormalized: numeric min value
-        rainfall_max: null, // Denormalized: numeric max value
-    };
-
-    if (data["temperature"]) {
-        // Expect something like "Min. air temperature 2°C and max. air temperature 6°C"
-        const tempMatches = data["temperature"].match(/(-?\d+).*?(-?\d+)/);
-        if (tempMatches) {
-            forecast.min_temp = parseInt(tempMatches[1]);
-            forecast.max_temp = parseInt(tempMatches[2]);
-        }
-    }
-    if (data["wind speed"]) {
-        forecast.wind_speed = parseInt(data["wind speed"]);
-    }
-    if (data["wind direction"]) {
-        forecast.wind_direction = data["wind direction"];
-    }
-    // If there’s any additional wind information (e.g. if an h3 exists that mentions "wind" but isn’t exactly "wind speed" or "wind direction")
-    for (const key in data) {
-        if (key.includes("wind") && key !== "wind speed" && key !== "wind direction") {
-            forecast.wind_details = data[key];
-        }
-    }
-    if (data["visibility"]) {
-        forecast.visibility = data["visibility"];
-        forecast.visibility_code = parseVisibilityCode(data["visibility"]);
-    }
-    if (data["comments"]) {
-        forecast.comments = data["comments"];
-    }
-
-    if (data["rainfall (mm)"] || data["rainfall (mm):"]) {
-        const rainfallKey = data["rainfall (mm)"] ? "rainfall (mm)" : "rainfall (mm):";
-        forecast.rainfall = data[rainfallKey];
-
-        // Extract denormalized numeric values using utility function
-        const { min, max } = parseRainfallRange(forecast.rainfall);
-        forecast.rainfall_min = min;
-        forecast.rainfall_max = max;
-    }
-
-    return forecast;
-}
-
-/**
- * Parses the RSS feed at the given URL using fast-xml-parser.
- * The description field is first HTML-decoded and then split into sections
- * based on <h2> tags.
- */
-async function parseFeed(url) {
-    console.log("Fetching RSS feed from:", url);
-    const response = await fetch(url);
-    const text = await response.text();
-    console.log("RSS feed fetched, content length:", text.length);
-
-    // Parse the XML with fast-xml-parser.
-    const parser = new XMLParser({
-        ignoreAttributes: false,
-        attributeNamePrefix: "",
-    });
-    const feed = parser.parse(text);
-
-    // Navigate the feed structure.
-    let items = [];
-    if (feed.rss && feed.rss.channel && feed.rss.channel.item) {
-        items = feed.rss.channel.item;
-        if (!Array.isArray(items)) {
-            items = [items];
-        }
-    } else {
-        throw new Error("Invalid RSS feed structure");
-    }
-
-    const forecasts = [];
-    for (const item of items) {
-        const published_at = item.pubDate
-            ? new Date(item.pubDate).toISOString()
-            : new Date().toISOString();
-        // Updated guid extraction:
-        const guid = item.guid
-            ? (typeof item.guid === "string"
-                ? item.guid.trim()
-                : item.guid["#text"]
-                    ? item.guid["#text"].trim()
-                    : "")
-            : "";
-        let description = item.description || "";
-        description = decodeHtmlEntities(description);
-
-        // Split the description into sections.
-        // Each section begins with an <h2> tag.
-        const sections = description.split(/<h2>/).slice(1).map((sec) => "<h2>" + sec);
-        for (const section of sections) {
-            try {
-                const forecast = parseForecastSection(section, published_at);
-                // Create a unique guid for each forecast item.
-                forecast.guid = `${guid}-${forecast.forecast_date}`;
-                forecasts.push(forecast);
-            } catch (e) {
-                console.error("Error parsing forecast section:", e);
-            }
-        }
-    }
-    console.log("Total forecasts parsed:", forecasts.length);
-    return forecasts;
-}
-
 // Insert new forecasts into the D1 database.
 async function fetchAndStoreWeather(env) {
     console.log("Starting fetchAndStoreWeather");
     try {
         const feedUrl = CONFIG.feed.url;
-        const items = await parseFeed(feedUrl);
+        const items = await fetchForecasts(feedUrl);
 
         if (items.length === 0) {
-            console.log("No items found in RSS feed");
-            await sendNotification("No items found in RSS feed", env);
+            console.log("No items found in forecast feed");
+            await sendNotification("No items found in forecast feed", env);
             return [];
         }
 
         const latestPublishedDate = await getLatestPublishedDate(env);
-        const newPubDate = items[0].published_at;
+        const newPubDate = items.reduce((max, i) => (i.published_at > max ? i.published_at : max), "");
         console.log("Comparing dates:", {
             latestInDb: latestPublishedDate,
             newFromFeed: newPubDate,
@@ -318,7 +91,7 @@ async function fetchAndStoreWeather(env) {
 
         console.log("New data found, preparing to insert");
         const stmt = env.DB.prepare(`
-            insert into forecast_items (published_at, forecast_date, min_temp, max_temp,
+            insert or ignore into forecast_items (published_at, forecast_date, min_temp, max_temp,
                                         wind_speed, wind_direction, description,
                                         wind_details, visibility, visibility_code, comments,
                                         guid, rainfall, rainfall_min, rainfall_max)

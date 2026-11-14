@@ -64,9 +64,9 @@ export const CONFIG = {
         maxAge: "86400",
     },
 
-    // RSS feed settings
+    // Met Office forecast (weather.gov.im JSON API; the gov.im RSS feed was retired)
     feed: {
-        url: "https://www.gov.im/weather/5-day-forecast/Rss5DayForecast",
+        url: "https://weather.gov.im/_api/listings/5-day-weather-forecast-listing/_nocache",
         refreshThresholdHours: 3,
         expectedForecastDays: 5,
     },

@@ -29,7 +29,7 @@ A weather forecast application for the Isle of Man with AI-powered natural langu
 
 - **Frontend** (`/app`): Vanilla JavaScript with ES6 modules
 - **Backend** (`/worker`): Cloudflare Worker with D1 database
-- **Data Source**: Isle of Man Government RSS feed
+- **Data Source**: Isle of Man Met Office 5-day forecast (weather.gov.im JSON API)
 - **AI**: Venice.ai for natural language query processing
 
 ## Quick Start

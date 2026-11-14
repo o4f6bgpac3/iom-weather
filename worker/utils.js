@@ -73,7 +73,7 @@ export function formatFieldName(field) {
 // Data Denormalization Utilities
 // =============================================================================
 // These functions extract structured/numeric data from free-text fields
-// in the RSS feed for easier querying and analysis.
+// in the forecast feed for easier querying and analysis.
 
 /**
  * Parses rainfall string to extract min/max numeric values.
@@ -81,7 +81,7 @@ export function formatFieldName(field) {
  * Extracts the absolute minimum and maximum from ALL numbers in the string,
  * so qualifiers like "risk of X on hills" are included in the max.
  *
- * Handles various formats found in the RSS feed:
+ * Handles various formats found in the forecast feed:
  * - Single value: "0" -> { min: 0, max: 0 }
  * - Simple range: "5-10" -> { min: 5, max: 10 }
  * - Decimal values: "0.5-3" -> { min: 0.5, max: 3 }
@@ -89,7 +89,7 @@ export function formatFieldName(field) {
  * - With qualifier: "2-8, risk of 15 on hills" -> { min: 2, max: 15 }
  * - With text: "1-5 mainly overnight" -> { min: 1, max: 5 }
  *
- * @param {string} rainfallStr - Raw rainfall string from RSS feed
+ * @param {string} rainfallStr - Raw rainfall string from the forecast feed
  * @returns {{min: number|null, max: number|null}} - Parsed min/max values
  */
 export function parseRainfallRange(rainfallStr) {
@@ -117,7 +117,7 @@ export function parseRainfallRange(rainfallStr) {
 /**
  * Extracts a normalized visibility code from visibility description.
  *
- * The RSS feed visibility field contains various descriptions:
+ * The forecast feed visibility field contains various descriptions:
  * - "Good" -> "good"
  * - "Moderate" -> "moderate"
  * - "Poor" -> "poor"
@@ -125,7 +125,7 @@ export function parseRainfallRange(rainfallStr) {
  * - "Moderate or good" -> "moderate" (uses first mentioned)
  * - "Mostly good" -> "good"
  *
- * @param {string} visibilityStr - Raw visibility string from RSS feed
+ * @param {string} visibilityStr - Raw visibility string from the forecast feed
  * @returns {string|null} - Normalized visibility code: "good", "moderate", "poor", or null
  */
 export function parseVisibilityCode(visibilityStr) {
