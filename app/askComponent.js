@@ -1,8 +1,9 @@
+import { escapeHtml } from "./forecastModel.js";
+
 export class AskComponent {
     constructor(apiUrl) {
         this.apiUrl = apiUrl;
         this.container = null;
-        this.isExpanded = false;
         this.init();
     }
 
@@ -17,19 +18,14 @@ export class AskComponent {
     render() {
         this.container.innerHTML = `
             <div class="ask-section">
-                <button class="ask-toggle" aria-expanded="false" type="button">
-                    <span class="ask-toggle-icon">?</span>
-                    <span class="ask-toggle-text">Ask a question about the weather</span>
-                    <span class="ask-toggle-arrow">▼</span>
-                </button>
-                <div class="ask-panel" hidden>
+                <div class="ask-panel">
                     <form class="ask-form">
                         <div class="ask-input-wrapper">
                             <div class="ask-input-container">
                                 <input
                                     type="text"
                                     class="ask-input"
-                                    placeholder="e.g., When was the last dry day?"
+                                    placeholder="Ask anything: when did it last snow?"
                                     maxlength="500"
                                     aria-label="Weather question"
                                     autocomplete="off"
@@ -41,9 +37,6 @@ export class AskComponent {
                             <button type="submit" class="ask-submit" aria-label="Submit question">
                                 Ask
                             </button>
-                        </div>
-                        <div class="ask-hints">
-                            Try: "What's the weather tomorrow?" or "When did it last rain?"
                         </div>
                     </form>
                     <div class="ask-result" hidden>
@@ -61,22 +54,9 @@ export class AskComponent {
     }
 
     setupEventListeners() {
-        const toggle = this.container.querySelector(".ask-toggle");
-        const panel = this.container.querySelector(".ask-panel");
         const form = this.container.querySelector(".ask-form");
         const input = this.container.querySelector(".ask-input");
         const clearBtn = this.container.querySelector(".ask-clear");
-
-        toggle.addEventListener("click", () => {
-            this.isExpanded = !this.isExpanded;
-            toggle.setAttribute("aria-expanded", this.isExpanded);
-            panel.hidden = !this.isExpanded;
-            toggle.querySelector(".ask-toggle-arrow").textContent = this.isExpanded ? "▲" : "▼";
-
-            if (this.isExpanded) {
-                input.focus();
-            }
-        });
 
         form.addEventListener("submit", (e) => this.handleSubmit(e));
 
@@ -278,8 +258,8 @@ export class AskComponent {
                     .map(
                         (c) => `
                     <div class="citation">
-                        <a href="#" class="citation-date" data-date="${c.forecast_date}">${this.formatDate(c.forecast_date)}</a>
-                        ${c.description ? `<span class="citation-desc"> - ${c.description}</span>` : ""}
+                        <a href="#" class="citation-date" data-date="${escapeHtml(c.forecast_date)}">${escapeHtml(this.formatDate(c.forecast_date))}</a>
+                        ${c.description ? `<span class="citation-desc"> - ${escapeHtml(c.description)}</span>` : ""}
                     </div>
                 `
                     )
@@ -325,8 +305,8 @@ export class AskComponent {
                     .map(
                         (c) => `
                     <div class="citation">
-                        <a href="#" class="citation-date" data-date="${c.forecast_date}">${this.formatDate(c.forecast_date)}</a>
-                        ${c.description ? `<span class="citation-desc"> - ${c.description}</span>` : ""}
+                        <a href="#" class="citation-date" data-date="${escapeHtml(c.forecast_date)}">${escapeHtml(this.formatDate(c.forecast_date))}</a>
+                        ${c.description ? `<span class="citation-desc"> - ${escapeHtml(c.description)}</span>` : ""}
                     </div>
                 `
                     )

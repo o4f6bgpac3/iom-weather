@@ -100,7 +100,9 @@ iom-weather/
 │   ├── index.html         # Main HTML
 │   ├── app.js             # Main application logic
 │   ├── config.js          # Frontend configuration
-│   ├── forecastCard.js    # Forecast card component
+│   ├── forecastModel.js   # Day model: weather summary, tide curve
+│   ├── tidelineView.js    # Tide strip, day chips and forecast columns
+│   ├── scene.js           # three.js weather scene
 │   ├── askComponent.js    # Natural language query UI
 │   ├── utils.js           # Utility functions
 │   └── styles.css         # Stylesheet

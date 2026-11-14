@@ -3,56 +3,63 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="color-scheme" content="dark"/>
     <title>Isle of Man Weather Forecast</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Red+Hat+Display:wght@400..800&display=swap" rel="stylesheet">
 
-    <!-- Font Awesome for icons -->
-    <link
-            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-            rel="stylesheet"
-    />
     <!-- Primary stylesheet -->
     <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
-<div class="container">
-    <header>
-        <div class="header-content">
-            <h1>Isle of Man Weather</h1>
-            <div class="date-filter">
-                <label for="forecast-date">Select Date:</label>
-                <input type="date" id="forecast-date"/>
-                <button id="reset-filter">Latest</button>
+<header class="site-header">
+    <h1>Isle of Man Weather</h1>
+    <div id="ask-container"></div>
+    <div class="date-filter">
+        <label class="visually-hidden" for="forecast-date">Pick a date</label>
+        <input type="date" id="forecast-date"/>
+        <button type="button" id="reset-filter">Latest</button>
+    </div>
+</header>
+
+<main>
+    <div id="loading" class="status" role="status">
+        <div class="spinner"></div>
+        <p>Loading forecast data...</p>
+    </div>
+    <div id="error-message" class="status status-error" role="alert"></div>
+    <div id="no-data-message" class="status" role="status"></div>
+
+    <div id="forecast-container">
+        <div class="stage" id="stage">
+            <canvas id="scene" aria-hidden="true"></canvas>
+            <div class="stage-hint">Drag to move through time</div>
+            <div class="hud">
+                <div class="hud-when" id="when"></div>
+                <div class="hud-what" id="what"></div>
+            </div>
+            <div class="stage-controls">
+                <button type="button" id="play">Play</button>
+                <button type="button" id="now">Now</button>
             </div>
         </div>
-        <div id="ask-container"></div>
-    </header>
+        <div class="strip" id="strip" role="slider" tabindex="0" aria-label="Time" aria-valuemin="0"></div>
+        <nav class="chips" id="chips" aria-label="Day"></nav>
+        <div class="days" id="days"></div>
+    </div>
+</main>
 
-    <main>
-        <div id="loading" class="loading">
-            <div class="spinner"></div>
-            <p>Loading forecast data...</p>
-        </div>
-
-        <div id="forecast-container" class="forecast-container"></div>
-
-        <div id="error-message" class="error-message"></div>
-        <div id="no-data-message" class="no-data-message"></div>
-    </main>
-
-    <footer>
-        <p>
-            Data provided by the
-            <a href="https://www.gov.im/weather/5-day-forecast/" target="_blank"
-            >Isle of Man Meteorological Service</a
-            >.
-        </p>
-    </footer>
-</div>
+<footer>
+    <p>
+        Data provided by the
+        <a href="https://www.gov.im/weather/5-day-forecast/" target="_blank" rel="noopener"
+        >Isle of Man Meteorological Service</a
+        >.
+    </p>
+</footer>
 
 <script type="module" src="app.js"></script>
 </body>
