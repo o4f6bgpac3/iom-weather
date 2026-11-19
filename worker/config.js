@@ -69,5 +69,13 @@ export const CONFIG = {
         url: "https://weather.gov.im/_api/listings/5-day-weather-forecast-listing/_nocache",
         refreshThresholdHours: 3,
         expectedForecastDays: 5,
+        // Cron alerts if the newest forecast is older than this. Publishes ~05:00 UTC daily;
+        // 30h means the 11:00 UTC run flags a missed day.
+        staleAlertHours: 30,
+        // Cron fires every 30 min; a full fetch runs at these UTC hours.
+        regularHoursUtc: [3, 11, 19],
+        // After a failed regular fetch, retry this many minutes later; alert if all fail.
+        retryOffsetsMinutes: [30, 60, 120],
+        fetchLogRetentionDays: 30,
     },
 };

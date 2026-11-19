@@ -39,7 +39,7 @@ async function sendNotification(message, env) {
                 sender: env.NOTIFICATION_EMAIL_FROM,
                 subject: "IOM Weather Alert",
                 text_body: message,
-                html_body: `<p>${message}</p>`,
+                html_body: `<p>${message.replace(/[&<>]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"})[c])}</p>`,
             }),
         });
 
@@ -72,9 +72,7 @@ async function fetchAndStoreWeather(env) {
         const items = await fetchForecasts(feedUrl);
 
         if (items.length === 0) {
-            console.log("No items found in forecast feed");
-            await sendNotification("No items found in forecast feed", env);
-            return [];
+            throw new Error("No items found in forecast feed");
         }
 
         const latestPublishedDate = await getLatestPublishedDate(env);
@@ -124,7 +122,6 @@ async function fetchAndStoreWeather(env) {
         return items;
     } catch (error) {
         console.error("Error in fetchAndStoreWeather:", error);
-        await sendNotification(`Failed to fetch/store weather: ${error.message}`, env);
         throw error;
     }
 }
@@ -141,16 +138,90 @@ async function getFutureForecasts(env) {
     const {results} = await env.DB.prepare(query).all();
     console.log(`Retrieved ${results?.length || 0} future forecasts from database`);
 
-    if (!results || results.length === 0) {
-        return [];
+    let rows = results || [];
+    if (rows.length === 0) {
+        // Nothing current: fall back to the most recent days we hold, so the
+        // site still shows something while the upstream feed is down.
+        const fallback = await env.DB.prepare(`
+            select *
+            from forecast_items
+            where forecast_date in (
+                select distinct forecast_date from forecast_items
+                order by forecast_date desc limit ?
+            )
+            order by forecast_date asc, published_at desc
+        `).bind(CONFIG.feed.expectedForecastDays).all();
+        rows = fallback.results || [];
+        console.log(`No future forecasts; falling back to ${rows.length} recent rows`);
     }
 
-    // Enrich each forecast with sun and tide data
-    const enriched = await Promise.all(
-        results.map(forecast => enrichForecastWithSunAndTides(forecast, env))
-    );
+    return Promise.all(rows.map(forecast => enrichForecastWithSunAndTides(forecast, env)));
+}
 
-    return enriched;
+// Hours since the newest forecast was published (Infinity if none).
+async function hoursSinceLastPublish(env) {
+    const row = await env.DB.prepare("select max(published_at) as latest from forecast_items").first();
+    if (!row?.latest) return Infinity;
+    return (Date.now() - new Date(row.latest).getTime()) / 3600000;
+}
+
+// Record one fetch attempt. Never throws: logging must not break fetching.
+async function logFetch(env, trigger, ok, items, error) {
+    try {
+        await env.DB.prepare(
+            "insert into fetch_log (attempted_at, trigger, ok, items, error) values (?, ?, ?, ?, ?)"
+        ).bind(new Date().toISOString(), trigger, ok ? 1 : 0, items ?? null, error ?? null).run();
+    } catch (e) {
+        console.error("Failed to write fetch_log:", e);
+    }
+}
+
+// True if a page-load fetch failed in the last 10 min (don't hammer upstream).
+async function recentRequestFailure(env) {
+    const since = new Date(Date.now() - 10 * 60000).toISOString();
+    const row = await env.DB.prepare(
+        "select 1 from fetch_log where trigger = 'request' and ok = 0 and attempted_at > ? limit 1"
+    ).bind(since).first().catch(() => null);
+    return Boolean(row);
+}
+
+// Fetch + store, logging the outcome. Returns the error (or null).
+async function attemptFetch(env, trigger) {
+    try {
+        const items = await fetchAndStoreWeather(env);
+        await logFetch(env, trigger, true, items.length, null);
+        return null;
+    } catch (error) {
+        await logFetch(env, trigger, false, null, String(error?.message || error).slice(0, 500));
+        return error;
+    }
+}
+
+/**
+ * Decide what this 30-minute cron tick should do.
+ * Returns {kind: "regular"} | {kind: "retry", attempt, isLast} | {kind: "idle"}.
+ */
+async function planTick(env, now) {
+    if (CONFIG.feed.regularHoursUtc.includes(now.getUTCHours()) && now.getUTCMinutes() < 30) {
+        return {kind: "regular"};
+    }
+    const regular = await env.DB.prepare(
+        "select attempted_at, ok from fetch_log where trigger = 'cron' order by attempted_at desc limit 1"
+    ).first();
+    if (!regular || regular.ok) return {kind: "idle"};
+
+    const {results: retries} = await env.DB.prepare(
+        "select ok from fetch_log where trigger = 'retry' and attempted_at > ? order by attempted_at"
+    ).bind(regular.attempted_at).all();
+    if (retries.some((r) => r.ok)) return {kind: "idle"};
+
+    const offsets = CONFIG.feed.retryOffsetsMinutes;
+    const done = retries.length;
+    if (done >= offsets.length) return {kind: "idle"};
+    // 5 min slack so cron jitter doesn't push a retry to the next tick.
+    const dueAt = new Date(regular.attempted_at).getTime() + (offsets[done] - 5) * 60000;
+    if (now.getTime() < dueAt) return {kind: "idle"};
+    return {kind: "retry", attempt: done + 1, isLast: done + 1 === offsets.length};
 }
 
 // Retrieve forecasts for a specific date, enriched with sun/tide data.
@@ -263,10 +334,26 @@ export default {
                 });
             }
 
+            // Fetch health: recent attempts plus data age. Read-only, no secrets.
+            if (url.pathname === "/status" && request.method === "GET") {
+                const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit"), 10) || 50, 1), 500);
+                const {results: attempts} = await env.DB.prepare(
+                    "select attempted_at, trigger, ok, items, error from fetch_log order by attempted_at desc limit ?"
+                ).bind(limit).all();
+                const ageHours = await hoursSinceLastPublish(env);
+                return Response.json({
+                    newest_forecast_age_hours: Number.isFinite(ageHours) ? +ageHours.toFixed(2) : null,
+                    stale: !(ageHours <= CONFIG.feed.staleAlertHours),
+                    attempts,
+                }, {headers: {...corsHeaders(origin), "Cache-Control": "no-store"}});
+            }
+
             // Handle forecast endpoint
-            if (await shouldFetchNewData(env)) {
+            if (await shouldFetchNewData(env) && !(await recentRequestFailure(env))) {
                 console.log("Fetching new weather data");
-                await fetchAndStoreWeather(env);
+                // Serve what we already hold on failure; the cron job alerts.
+                const error = await attemptFetch(env, "request");
+                if (error) console.error("Live refresh failed, serving stored data:", error);
             }
             const date = url.searchParams.get("date");
 
@@ -287,17 +374,35 @@ export default {
     },
 
     async scheduled(event, env, ctx) {
-        console.log("Starting scheduled task");
-        try {
-            // Refresh weather data
-            await fetchAndStoreWeather(env);
+        const now = new Date(event.scheduledTime || Date.now());
+        const plan = await planTick(env, now);
+        if (plan.kind === "idle") return;
+        console.log("Scheduled tick:", JSON.stringify(plan));
 
-            // Refresh tide data (weekly is enough, but running daily is fine)
-            await refreshTideData(env.DB);
+        const trigger = plan.kind === "regular" ? "cron" : "retry";
+        const fetchError = await attemptFetch(env, trigger);
+        const ageHours = await hoursSinceLastPublish(env).catch(() => Infinity);
+        const ageText = Number.isFinite(ageHours) ? `${ageHours.toFixed(1)} hours` : "missing";
 
-            console.log("Scheduled task completed successfully");
-        } catch (error) {
-            console.error("Scheduled task failed:", error);
+        // Alert once retries are exhausted, or when data is stale at a regular run.
+        if (fetchError && plan.kind === "retry" && plan.isLast) {
+            await sendNotification(
+                `Forecast fetch failed after ${CONFIG.feed.retryOffsetsMinutes.length} retries: ${fetchError.message}. Newest stored forecast is ${ageText} old.`,
+                env
+            );
+        } else if (plan.kind === "regular" && ageHours > CONFIG.feed.staleAlertHours) {
+            await sendNotification(`No new forecast: newest stored forecast is ${ageText} old.`, env);
+        }
+
+        if (plan.kind === "regular") {
+            try {
+                await refreshTideData(env.DB);
+                await env.DB.prepare("delete from fetch_log where attempted_at < ?")
+                    .bind(new Date(now.getTime() - CONFIG.feed.fetchLogRetentionDays * 86400000).toISOString())
+                    .run();
+            } catch (error) {
+                console.error("Scheduled housekeeping failed:", error);
+            }
         }
     },
 };

@@ -54,3 +54,15 @@ INNER JOIN (
     FROM forecast_items
     GROUP BY forecast_date
 ) best ON fc.forecast_date = best.forecast_date AND fc.published_at = best.best_pub;
+
+-- One row per upstream forecast fetch attempt; served by GET /status.
+create table if not exists fetch_log
+(
+    id           INTEGER primary key AUTOINCREMENT,
+    attempted_at TEXT    not null,
+    trigger      TEXT    not null, -- 'cron' | 'retry' | 'request'
+    ok           INTEGER not null,
+    items        INTEGER,
+    error        TEXT
+);
+create index if not exists idx_fetch_log_at on fetch_log (attempted_at);

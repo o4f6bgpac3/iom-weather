@@ -25,7 +25,7 @@ id = "YOUR_KV_NAMESPACE_ID"
 # Scheduled trigger - runs at 03:00, 11:00, 19:00 UTC
 # Fetches new weather data from the Isle of Man government RSS feed
 [triggers]
-crons = ["0 3/8 * * *"]
+crons = ["*/30 * * * *"]
 
 # Enable Workers Logs for observability
 [observability]

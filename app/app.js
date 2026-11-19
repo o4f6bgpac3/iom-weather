@@ -148,17 +148,28 @@ class WeatherApp {
                 this.mergeForecasts(allFetched);
                 this.forecasts = this.allForecasts;
             } else {
-                const response = await fetch(this.API_URL);
-                if (!response.ok) throw new Error("Failed to fetch forecast data");
+                let forecasts = null;
+                try {
+                    const response = await fetch(this.API_URL);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    forecasts = await response.json();
+                } catch (error) {
+                    console.error("Error loading forecasts, trying cached copy:", error);
+                }
 
-                const forecasts = await response.json();
-                if (!Array.isArray(forecasts) || forecasts.length === 0) {
-                    this.showNoData("No forecast data is currently available. Please check back later.");
+                const fresh = Array.isArray(forecasts) && forecasts.length > 0;
+                if (fresh) this.saveCache(forecasts);
+                else forecasts = this.loadCache();
+                if (!forecasts || forecasts.length === 0) {
+                    this.showNoData("No data available.");
                     return;
                 }
 
                 this.allForecasts = forecasts;
                 this.forecasts = forecasts;
+                this.displayForecasts(this.forecasts);
+                this.showStaleNoticeIfNeeded(forecasts, !fresh);
+                return;
             }
 
             this.displayForecasts(this.forecasts);
@@ -391,6 +402,29 @@ class WeatherApp {
         this.errorElement.hidden = true;
         this.noDataElement.hidden = true;
         this.forecastContainer.classList.add("is-loading");
+    }
+
+    saveCache(forecasts) {
+        try { localStorage.setItem("iomForecastCache", JSON.stringify(forecasts)); } catch { /* storage unavailable */ }
+    }
+
+    loadCache() {
+        try {
+            const data = JSON.parse(localStorage.getItem("iomForecastCache"));
+            return Array.isArray(data) ? data : null;
+        } catch {
+            return null;
+        }
+    }
+
+    /** Shows "No data available" above the forecast when nothing covers today. */
+    showStaleNoticeIfNeeded(forecasts, fromCache) {
+        const today = islandNow().date;
+        const hasToday = forecasts.some((f) => forecastIsoDate(f) >= today);
+        if (hasToday && !fromCache) return;
+        const issued = forecasts.map((f) => f.published_at).sort().at(-1)?.slice(0, 10);
+        this.noDataElement.textContent = `No data available${hasToday ? " right now" : " for today"}. Showing the last forecast we have (issued ${issued}).`;
+        this.noDataElement.hidden = false;
     }
 
     hideLoading() {
